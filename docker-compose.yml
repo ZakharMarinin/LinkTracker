@@ -1,0 +1,53 @@
+services:
+  scrapper:
+    build: ./scrapper
+    ports:
+      - "8081:8081"
+    env_file:
+      - scrapper/.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  tgbot:
+    build: ./tgBot
+    ports:
+      - "8080:8080"
+    env_file:
+      - tgBot/.env
+    depends_on:
+      - valkey
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:18
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg-data:/var/lib/postgresql
+    env_file:
+      - .env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  valkey:
+    image: valkey/valkey:9.0.0
+    container_name: valkey
+    ports:
+      - "6379:6379"
+    volumes:
+      - valkey-data:/data
+    restart: unless-stopped
+
+volumes:
+  valkey-data:
+  pg-data:

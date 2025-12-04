@@ -1,0 +1,14 @@
+env: "local"
+http_server:
+  address: 0.0.0.0:8080
+  timeout: 4s
+  idle_timeout: 60s
+bot_clients:
+  scrapper:
+    addr: "http://scrapper:8081"
+    timeout: 5s
+    retry: 5
+redis:
+  addr: "valkey:6379"
+  password: ""
+  DB: 0
