@@ -24,7 +24,7 @@ func (b *BotHandler) UntrackLink(ctx context.Context) telebot.HandlerFunc {
 
 		b.useCase.ChangeUserState(ctx, userInfo, domain.WaitingDelete)
 
-		msg := "Выберите ссылку для удаления, написав название репозитория: "
+		msg := "Выберите ссылку для удаления, написав название репозитория: \n"
 
 		links, err := b.useCase.GetLinks(ctx, c.Sender().ID)
 		if err != nil {

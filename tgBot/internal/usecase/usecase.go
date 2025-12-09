@@ -11,7 +11,7 @@ type Storage interface {
 	SetTempUserState(ctx context.Context, userInfo *domain.UserStateInfo) error
 	GetTempUserState(ctx context.Context, userID int64) (*domain.UserStateInfo, error)
 	SaveTempUserLinks(ctx context.Context, tempUserLinks *storage.TempUserLinks) error
-	GetTempUserLinks(ctx context.Context, userID string) (*storage.TempUserLinks, error)
+	GetTempUserLinks(ctx context.Context, userID int64) (*storage.TempUserLinks, error)
 }
 
 type ScrapperClient interface {
