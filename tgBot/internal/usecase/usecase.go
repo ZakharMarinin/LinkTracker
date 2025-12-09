@@ -20,6 +20,7 @@ type ScrapperClient interface {
 	DeleteChat(ctx context.Context, chatID int64) error
 	DeleteLink(ctx context.Context, chatID int64, alias string) error
 	GetLinks(ctx context.Context, chatID int64) ([]*domain.Link, error)
+	GetFilteredLinks(ctx context.Context, chatID int64, tag string) ([]*domain.Link, error)
 }
 
 type UseCase struct {

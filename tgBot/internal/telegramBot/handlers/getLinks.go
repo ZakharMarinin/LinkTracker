@@ -18,10 +18,14 @@ func (b *BotHandler) AllLinks(ctx context.Context) telebot.HandlerFunc {
 
 		msg := "Ваши отслеживаемые ссылки: \n\n"
 
-		for i := 0; i < len(links); i++ {
-			urlParts := strings.Split(links[i].URL, "/")
-			alias := urlParts[len(urlParts)-1]
-			msg += fmt.Sprintf("%s: %s\nОписание репозитория: %s\n\n", alias, links[i].URL, links[i].Desc)
+		if len(links) > 0 {
+			for i := 0; i < len(links); i++ {
+				urlParts := strings.Split(links[i].URL, "/")
+				alias := urlParts[len(urlParts)-1]
+				msg += fmt.Sprintf("%s: %s\nОписание репозитория: %s\nТеги репозитория: %s\n\n", alias, links[i].URL, links[i].Desc, links[i].Tags)
+			}
+		} else {
+			msg = "У вас пока что нет отслеживаемых ссылок."
 		}
 
 		c.Send(msg)

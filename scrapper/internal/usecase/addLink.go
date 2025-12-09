@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-func (u *UseCase) AddLink(ctx context.Context, chatID int64, url string, desc string) error {
+func (u *UseCase) AddLink(ctx context.Context, chatID int64, url, desc, tags string) error {
 	exists, err := u.db.IsLinkExists(ctx, url)
 	if err != nil {
 		u.log.Error("Error while checking if link exists", "error", err)
@@ -21,6 +21,7 @@ func (u *UseCase) AddLink(ctx context.Context, chatID int64, url string, desc st
 		ChatID: chatID,
 		URL:    url,
 		Desc:   desc,
+		Tags:   tags,
 		Alias:  alias,
 	}
 

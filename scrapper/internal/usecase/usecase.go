@@ -13,6 +13,7 @@ type Postgres interface {
 	AddLink(ctx context.Context, link *domain.Link) error
 	AddUserLink(ctx context.Context, chatID int64, link *domain.Link) error
 	GetLinksByChatID(ctx context.Context, chatID int64) ([]domain.Link, error)
+	GetUserLinksByTag(ctx context.Context, chatID int64, tags string) ([]*domain.Link, error)
 	GetLinks(ctx context.Context, limit, offset uint64) ([]domain.Link, error)
 	GetLinkByURL(ctx context.Context, url string) (*domain.Link, error)
 	IsLinkExists(ctx context.Context, url string) (bool, error)

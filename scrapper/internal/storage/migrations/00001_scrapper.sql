@@ -18,7 +18,8 @@ CREATE TABLE IF NOT EXISTS user_links (
     chat_id INT NOT NULL REFERENCES users(chat_id),
     link_id INT NOT NULL REFERENCES links(link_id),
     alias TEXT NOT NULL,
-    description TEXT
+    description TEXT,
+    tags TEXT
 );
 
 -- +goose Down

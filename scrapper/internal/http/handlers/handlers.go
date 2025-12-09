@@ -9,9 +9,10 @@ import (
 type UseCase interface {
 	CreateChat(ctx context.Context, chatID int64) error
 	DeleteChat(ctx context.Context, chatID int64) error
-	AddLink(ctx context.Context, chatID int64, url string, desc string) error
+	AddLink(ctx context.Context, chatID int64, url, desc, tags string) error
 	DeleteLink(ctx context.Context, chatID int64, alias string) error
 	GetLinks(ctx context.Context, chatID int64) ([]domain.Link, error)
+	GetFilteredLinks(ctx context.Context, chatID int64, tags string) ([]*domain.Link, error)
 }
 
 type HTTP struct {

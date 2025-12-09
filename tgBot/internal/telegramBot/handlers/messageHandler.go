@@ -2,7 +2,9 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"linktracker/internal/domain"
+	"strings"
 
 	"gopkg.in/telebot.v4"
 )
@@ -33,12 +35,21 @@ func (b *BotHandler) MessageHandler(ctx context.Context) telebot.HandlerFunc {
 			} else {
 				userInfo.Desc = c.Text()
 			}
-			b.useCase.ChangeUserState(ctx, userInfo, domain.WaitingCommand)
+
+			b.useCase.ChangeUserState(ctx, userInfo, domain.WaitingTags)
+			b.Bot.Send(c.Recipient(), "Добавьте теги для репозитория через запятую\nЭтот этап необязательный, вы можете пропустить его написав 'skip'.")
+		case domain.WaitingTags:
+			if c.Text() == "skip" {
+				userInfo.Tags = ""
+			} else {
+				userInfo.Tags = c.Text()
+			}
 
 			link := domain.Link{
 				URL:    userInfo.URL,
 				Desc:   userInfo.Desc,
-				ChatID: c.Sender().ID,
+				Tags:   userInfo.Tags,
+				ChatID: userInfo.UserID,
 			}
 
 			err = b.useCase.AddLink(ctx, userInfo.UserID, link)
@@ -48,6 +59,7 @@ func (b *BotHandler) MessageHandler(ctx context.Context) telebot.HandlerFunc {
 				return err
 			}
 
+			b.useCase.ChangeUserState(ctx, userInfo, domain.WaitingCommand)
 			b.Bot.Send(c.Recipient(), "готово!")
 		case domain.WaitingDelete:
 			err := b.useCase.DeleteLink(ctx, c.Sender().ID, c.Text())
@@ -59,6 +71,27 @@ func (b *BotHandler) MessageHandler(ctx context.Context) telebot.HandlerFunc {
 
 			b.useCase.ChangeUserState(ctx, userInfo, domain.WaitingCommand)
 			b.Bot.Send(c.Recipient(), "Готово!\nВаша ссылка была успешно удалена.")
+		case domain.WaitingFilter:
+			links, err := b.useCase.GetFilteredLinks(ctx, c.Sender().ID, c.Text())
+			if err != nil {
+				b.log.Error("GetLinks: Error getting links", "error", err)
+				return err
+			}
+
+			msg := "Ваши отслеживаемые ссылки с примененным фильтром: \n\n"
+
+			if len(links) > 0 {
+				for i := 0; i < len(links); i++ {
+					urlParts := strings.Split(links[i].URL, "/")
+					alias := urlParts[len(urlParts)-1]
+					msg += fmt.Sprintf("%s: %s\nОписание репозитория: %s\nТеги репозитория: %s\n\n", alias, links[i].URL, links[i].Desc, links[i].Tags)
+				}
+			} else {
+				msg = "Не удалось найти ссылки с данным тегом. Попробуйте еще раз."
+			}
+
+			c.Send(msg)
+			b.useCase.ChangeUserState(ctx, userInfo, domain.WaitingCommand)
 		case "/cancel":
 			b.Cancel(ctx, userInfo, c)
 		case "":
