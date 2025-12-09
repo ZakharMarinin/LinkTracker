@@ -9,9 +9,10 @@ import (
 	"github.com/go-chi/render"
 )
 
-func (h *HTTP) GetLinks(ctx context.Context) http.HandlerFunc {
+func (h *HTTP) GetFilteredLinks(ctx context.Context) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		chatID := chi.URLParam(r, "id")
+		tags := chi.URLParam(r, "tag")
 
 		if chatID == "" {
 			h.log.Error("handler-GetLinks: Empty chat ID")
@@ -26,7 +27,7 @@ func (h *HTTP) GetLinks(ctx context.Context) http.HandlerFunc {
 			return
 		}
 
-		links, err := h.useCase.GetLinks(ctx, intChatID)
+		links, err := h.useCase.GetFilteredLinks(ctx, intChatID, tags)
 		if err != nil {
 			h.log.Error("handler-GetLinks: could not get links" + err.Error())
 			return

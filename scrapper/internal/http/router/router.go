@@ -18,6 +18,7 @@ func Router(ctx context.Context, router *chi.Mux, http *handlers.HTTP, log *slog
 	router.Post("/tg-chat/{id}", http.CreateChat(ctx))
 	router.Delete("/tg-chat/{id}", http.DeleteChat(ctx))
 	router.Get("/links/{id}", http.GetLinks(ctx))
+	router.Get("/links/{id}/{tag}", http.GetFilteredLinks(ctx))
 	router.Post("/links", http.AddLink(ctx))
 	router.Delete("/links", http.DeleteLink(ctx))
 }

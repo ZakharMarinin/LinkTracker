@@ -64,7 +64,14 @@ Telegram Bot service handles user interactions and manages communication between
 | `/track`   | Add a GitHub repository link to track          |
 | `/untrack` | Remove a repository from tracking list         |
 | `/list`    | Show all currently tracked repositories        |
+| `/filter` | Show tracked repositories with tag filter      |
 | `/cancel`  | Interrupt current operation                    |
+
+### API Endpoints
+
+| Method | Endpoint   | Description                      |
+|--------|------------|----------------------------------|
+| `POST` | `/updates` | Upcoming updates from repository |
 
 ### Configuration
 
@@ -123,6 +130,7 @@ Scrapper service manages repository tracking, performs periodic checks, and noti
 | `POST` | `/tg-chat/{id}` | Register new Telegram chat (called on `/start`) |
 | `DELETE` | `/tg-chat/{id}` | Delete chat and all associated links |
 | `GET` | `/links/{id}`   | Get all tracked links for authenticated user |
+| `GET` | `/links/{id}/{tag}` | Get all tracked links with tag filter |
 | `POST` | `/links`        | Add new repository link to track |
 | `DELETE` | `/links`        | Remove repository link from tracking |
 

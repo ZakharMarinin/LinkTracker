@@ -13,6 +13,7 @@ type UseCase interface {
 	AddLink(ctx context.Context, id int64, link domain.Link) error
 	DeleteLink(ctx context.Context, id int64, alias string) error
 	GetLinks(ctx context.Context, id int64) ([]*domain.Link, error)
+	GetFilteredLinks(ctx context.Context, id int64, tag string) ([]*domain.Link, error)
 	CreateChat(ctx context.Context, chatID int64) error
 	ChangeUserState(ctx context.Context, userInfo *domain.UserStateInfo, state string) error
 	GetUserState(ctx context.Context, userID int64) (*domain.UserStateInfo, error)

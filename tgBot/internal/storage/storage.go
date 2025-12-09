@@ -30,6 +30,7 @@ func (r *RedisCom) SetTempUserState(ctx context.Context, userInfo *domain.UserSt
 		"UserID": userInfo.UserID,
 		"URL":    userInfo.URL,
 		"Desc":   userInfo.Desc,
+		"Tags":   userInfo.Tags,
 		"State":  userInfo.State,
 	}).Err()
 	if err != nil {
@@ -57,6 +58,7 @@ func (r *RedisCom) GetTempUserState(ctx context.Context, userID int64) (*domain.
 		UserID: userID,
 		URL:    val["URL"],
 		Desc:   val["Desc"],
+		Tags:   val["Tags"],
 		State:  val["State"],
 	}
 

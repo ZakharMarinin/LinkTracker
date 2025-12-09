@@ -186,11 +186,52 @@ func (s *PostgresStorage) GetLinks(ctx context.Context, limit, offset uint64) ([
 	return links, nil
 }
 
+func (s *PostgresStorage) GetUserLinksByTag(ctx context.Context, chatID int64, tags string) ([]*domain.Link, error) {
+	const op = "storage.postgres.GetUserLinksByTag"
+
+	query, args, err := sq.
+		Select("l.link_id", "l.url", "ul.alias", "ul.description", "ul.tags").
+		From("user_links ul").
+		Join("links l ON ul.link_id = l.link_id").
+		Where(sq.And{
+			sq.Eq{"ul.chat_id": chatID},
+			sq.Expr("ul.tags LIKE ?", "%"+tags+"%"),
+		}).
+		PlaceholderFormat(sq.Dollar).
+		ToSql()
+
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	rows, err := s.DB.Query(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	defer rows.Close()
+	var links []*domain.Link
+	for rows.Next() {
+		var link domain.Link
+		err := rows.Scan(&link.ID, &link.URL, &link.Alias, &link.Desc, &link.Tags)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", op, err)
+		}
+		links = append(links, &link)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return links, nil
+}
+
 func (s *PostgresStorage) GetLinksByChatID(ctx context.Context, chatID int64) ([]domain.Link, error) {
 	const op = "storage.postgres.GetLinksByChatID"
 
 	query, args, err := sq.
-		Select("l.link_id", "l.url", "ul.alias", "ul.description").
+		Select("l.link_id", "l.url", "ul.alias", "ul.description", "ul.tags").
 		From("user_links ul").Join("links l ON ul.link_id = l.link_id").
 		Where(sq.Eq{"ul.chat_id": chatID}).
 		OrderBy("l.link_id").
@@ -211,7 +252,7 @@ func (s *PostgresStorage) GetLinksByChatID(ctx context.Context, chatID int64) ([
 
 	for rows.Next() {
 		var link domain.Link
-		if err := rows.Scan(&link.ID, &link.URL, &link.Alias, &link.Desc); err != nil {
+		if err := rows.Scan(&link.ID, &link.URL, &link.Alias, &link.Desc, &link.Tags); err != nil {
 			return nil, fmt.Errorf("%s: %w", op, err)
 		}
 		links = append(links, link)
@@ -277,7 +318,13 @@ func (s *PostgresStorage) GetLinkByAlias(ctx context.Context, chatID int64, alia
 func (s *PostgresStorage) GetLinkByURL(ctx context.Context, url string) (*domain.Link, error) {
 	const op = "storage.postgres.GetLinkByURL"
 
-	query, args, err := sq.Select("link_id", "url", "alias", "last_update").From("links").Where(sq.Eq{"url": url}).PlaceholderFormat(sq.Dollar).ToSql()
+	query, args, err := sq.
+		Select("link_id", "url", "alias", "last_update").
+		From("links").
+		Where(sq.Eq{"url": url}).
+		PlaceholderFormat(sq.Dollar).
+		ToSql()
+
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
@@ -372,8 +419,8 @@ func (s *PostgresStorage) AddUserLink(ctx context.Context, chatID int64, link *d
 
 	query, args, err := sq.
 		Insert("user_links").
-		Columns("chat_id", "link_id", "alias", "description").
-		Values(intChatID, link.ID, link.Alias, link.Desc).
+		Columns("chat_id", "link_id", "alias", "description", "tags").
+		Values(intChatID, link.ID, link.Alias, link.Desc, link.Tags).
 		PlaceholderFormat(sq.Dollar).
 		ToSql()
 

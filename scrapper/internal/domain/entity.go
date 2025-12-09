@@ -7,6 +7,7 @@ type Link struct {
 	URL         string    `json:"url"`
 	Alias       string    `json:"alias"`
 	Desc        string    `json:"desc"`
+	Tags        string    `json:"tags"`
 	ChatID      int64     `json:"chat_id"`
 	LastUpdated time.Time `json:"last_updated"`
 }
@@ -20,6 +21,7 @@ type AddLinkRequest struct {
 	ChatID int64  `json:"chat_id"`
 	URL    string `json:"url"`
 	Desc   string `json:"desc"`
+	Tags   string `json:"tags"`
 }
 
 type DeleteLinkRequest struct {

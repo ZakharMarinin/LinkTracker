@@ -13,6 +13,6 @@ func Router(b *handlers.BotHandler, ctx context.Context) {
 	b.Bot.Handle("Привязать ссылку", b.TrackLink(ctx))
 	b.Bot.Handle("Отвязать ссылку", b.UntrackLink(ctx))
 	b.Bot.Handle("Список ссылок", b.AllLinks(ctx))
+	b.Bot.Handle("Фильтр", b.GetFilteredLinks(ctx))
 	b.Bot.Handle("Помощь", b.HelpMessage)
-
 }

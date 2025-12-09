@@ -4,7 +4,9 @@ const (
 	WaitingCommand     = "waiting_command"
 	WaitingURl         = "waiting_url"
 	WaitingDescription = "waiting_description"
+	WaitingTags        = "waiting_tags"
 	WaitingDelete      = "waiting_delete"
+	WaitingFilter      = "waiting_for_filter"
 )
 
 type UpdatedLink struct {
@@ -18,6 +20,7 @@ type Link struct {
 	Author     string `json:"author"`
 	Repository string `json:"repository"`
 	Desc       string `json:"desc"`
+	Tags       string `json:"tags"`
 	ChatID     int64  `json:"chat_id"`
 }
 
@@ -25,6 +28,7 @@ type UserStateInfo struct {
 	UserID int64  `json:"userID"`
 	URL    string `json:"url"`
 	Desc   string `json:"desc"`
+	Tags   string `json:"tags"`
 	State  string `json:"state"`
 }
 

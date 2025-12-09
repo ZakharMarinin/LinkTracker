@@ -29,7 +29,7 @@ func (h *HTTP) AddLink(ctx context.Context) http.HandlerFunc {
 			return
 		}
 
-		err = h.useCase.AddLink(ctx, link.ChatID, link.URL, link.Desc)
+		err = h.useCase.AddLink(ctx, link.ChatID, link.URL, link.Desc, link.Tags)
 		if err != nil {
 			h.log.Error("error adding link", err)
 			w.WriteHeader(http.StatusBadRequest)

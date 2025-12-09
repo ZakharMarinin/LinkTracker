@@ -21,9 +21,10 @@ func (b *BotHandler) Start(ctx context.Context) telebot.HandlerFunc {
 		btnTrack := menu.Text("Привязать ссылку")
 		btnUntrack := menu.Text("Отвязать ссылку")
 		btnShowAll := menu.Text("Список ссылок")
+		btnFilter := menu.Text("Фильтр")
 		btnHelp := menu.Text("Помощь")
 
-		menu.Reply(menu.Row(btnTrack, btnUntrack), menu.Row(btnShowAll, btnHelp))
+		menu.Reply(menu.Row(btnTrack, btnUntrack), menu.Row(btnShowAll, btnFilter), menu.Row(btnHelp))
 
 		err = b.useCase.CreateChat(ctx, c.Sender().ID)
 		if err != nil {
