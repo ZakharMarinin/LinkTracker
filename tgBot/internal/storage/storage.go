@@ -12,13 +12,8 @@ import (
 )
 
 type TempUserLinks struct {
-	UserID string     `json:"user_id"`
-	Links  []TempLink `json:"links"`
-}
-
-type TempLink struct {
-	URL         string `json:"url"`
-	Description string `json:"description"`
+	UserID int64          `json:"user_id"`
+	Links  []*domain.Link `json:"links"`
 }
 
 type RedisCom struct {
@@ -83,20 +78,26 @@ func (r *RedisCom) SaveTempUserLinks(ctx context.Context, tempUserLinks *TempUse
 		return err
 	}
 
+	err = r.DB.Expire(ctx, fmt.Sprintf("TempUserLinks:%s", tempUserLinks.UserID), 2*time.Hour).Err()
+	if err != nil {
+		r.log.Error("SetUser", "err", err)
+		return err
+	}
+
 	return nil
 }
 
-func (r *RedisCom) GetTempUserLinks(ctx context.Context, userID string) (*TempUserLinks, error) {
-	val, err := r.DB.HGetAll(ctx, fmt.Sprintf("TempUserState:%s", userID)).Result()
+func (r *RedisCom) GetTempUserLinks(ctx context.Context, userID int64) (*TempUserLinks, error) {
+	val, err := r.DB.HGetAll(ctx, fmt.Sprintf("TempUserLinks:%s", userID)).Result()
 	if err != nil {
-		r.log.Error("GetTempUserLinks", "err", err)
+		r.log.Error("GetTempUserLinks: error HGetAll", "err", err)
 		return nil, err
 	}
 
-	var links []TempLink
-	err = json.Unmarshal([]byte(val["Links"]), &links)
+	var links []*domain.Link
+	err = json.Unmarshal([]byte(val["links"]), &links)
 	if err != nil {
-		r.log.Error("GetTempUserLinks", "err", err)
+		r.log.Error("GetTempUserLinks: Cannot parse json", "err", err)
 		return nil, err
 	}
 
