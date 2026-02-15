@@ -19,6 +19,7 @@ type Config struct {
 
 type BotClients struct {
 	Scrapper Scrapper `yaml:"scrapper"`
+	Kafka    Kafka    `yaml:"kafka"`
 }
 
 type Scrapper struct {
@@ -27,6 +28,13 @@ type Scrapper struct {
 	Retry   int           `yaml:"retry" env-required:"true"`
 }
 
+type Kafka struct {
+	Addr    string        `yaml:"addr" env-required:"true"`
+	Topic   string        `yaml:"topic"`
+	GroupID string        `yaml:"group_id" env-required:"true"`
+	Timeout time.Duration `yaml:"timeout" env-default:"5s"`
+	Retry   int           `yaml:"retry" env-default:"5"`
+}
 type RedisConfig struct {
 	Addr     string `yaml:"addr" env-required:"true"`
 	Password string `yaml:"password"`

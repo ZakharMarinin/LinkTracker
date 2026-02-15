@@ -25,15 +25,13 @@ type Postgres interface {
 type UseCase struct {
 	db  Postgres
 	log *slog.Logger
-	ctx context.Context
 	cfg *config.Config
 }
 
-func NewUseCase(db Postgres, log *slog.Logger, ctx context.Context, cfg *config.Config) *UseCase {
+func NewUseCase(db Postgres, log *slog.Logger, cfg *config.Config) *UseCase {
 	return &UseCase{
 		db:  db,
 		log: log,
-		ctx: ctx,
 		cfg: cfg,
 	}
 }

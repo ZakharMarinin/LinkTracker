@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"net/http"
 	"scrapper/internal/domain"
 	"strings"
 	"sync"
@@ -22,8 +21,8 @@ type GithubClient interface {
 	GetUpdates(ctx context.Context, link *domain.Link) (update *domain.GitHubContent, err error)
 }
 
-type TGClient interface {
-	SendUpdate(ctx context.Context, link *domain.Response) (*http.Response, error)
+type Sender interface {
+	SendUpdate(ctx context.Context, link *domain.Response) error
 }
 
 type Cron struct {
@@ -31,17 +30,17 @@ type Cron struct {
 	Cron         *gocron.Scheduler
 	Storage      Storage
 	GitHubClient GithubClient
-	TGClient     TGClient
+	Sender       Sender
 	Limit        uint64
 }
 
-func New(log *slog.Logger, cron *gocron.Scheduler, storage Storage, github GithubClient, tgClient TGClient, limit uint64) *Cron {
+func New(log *slog.Logger, cron *gocron.Scheduler, storage Storage, github GithubClient, sender Sender, limit uint64) *Cron {
 	return &Cron{
 		log:          log,
 		Cron:         cron,
 		Storage:      storage,
 		GitHubClient: github,
-		TGClient:     tgClient,
+		Sender:       sender,
 		Limit:        limit,
 	}
 }
@@ -151,10 +150,9 @@ func (c *Cron) SendUpdate(ctx context.Context, link *domain.Link, message string
 		Link:    linkUpdate,
 	}
 
-	_, err := c.TGClient.SendUpdate(ctx, req)
+	err := c.Sender.SendUpdate(ctx, req)
 	if err != nil {
-		c.log.Error("failed to send update", "error", err)
-		return err
+		return fmt.Errorf("failed to send update: %s", err)
 	}
 
 	c.log.Info("sent update", "url", link.URL)

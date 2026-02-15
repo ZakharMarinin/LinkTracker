@@ -1,4 +1,4 @@
-package tgBotClient
+package sender
 
 import (
 	"bytes"
@@ -40,20 +40,21 @@ func (c *Client) doRequest(ctx context.Context, method string, url string, body 
 	return resp, nil
 }
 
-func (c *Client) SendUpdate(ctx context.Context, link *domain.Response) (*http.Response, error) {
+func (c *Client) SendUpdate(ctx context.Context, link *domain.Response) error {
 	url := c.addr + "/updates"
 
 	body, err := json.Marshal(link)
 	if err != nil {
 		c.log.Error("cannot marshal update request: ", err)
-		return nil, err
+		return err
 	}
 
 	resp, err := c.doRequest(ctx, http.MethodPost, url, bytes.NewReader(body))
 	if err != nil {
 		c.log.Error("cannot send request: ", err)
-		return nil, err
+		return err
 	}
+	defer resp.Body.Close()
 
-	return resp, nil
+	return nil
 }

@@ -8,6 +8,12 @@ bot_clients:
     addr: "http://scrapper:8081"
     timeout: 5s
     retry: 5
+  kafka:
+    addr: "kafka:9092"
+    topic: link-update
+    group_id: updates
+    timeout: 5s
+    retry: 5
 redis:
   addr: "valkey:6379"
   password: ""

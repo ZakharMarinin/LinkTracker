@@ -3,7 +3,6 @@ package config
 import (
 	"log"
 	"os"
-	"regexp"
 	"time"
 
 	"github.com/ilyakaznacheev/cleanenv"
@@ -11,16 +10,25 @@ import (
 )
 
 type Config struct {
-	Env         string         `yaml:"env" env-default:"local"`
-	HttpServer  HttpServer     `yaml:"http_server"`
-	Postgres    PostgresConfig `yaml:"postgres"`
-	GitHubToken string         `yaml:"github_token"`
-	TgBot       TGBot          `yaml:"tgbot"`
+	Env           string         `yaml:"env" env-default:"local"`
+	TransportType string         `yaml:"transport_type" env-default:"http"`
+	HttpServer    HttpServer     `yaml:"http_server"`
+	Postgres      PostgresConfig `yaml:"postgres"`
+	GitHubToken   string         `yaml:"github_token"`
+	TgBot         TGBot          `yaml:"tgbot"`
+	Kafka         Kafka          `yaml:"kafka"`
 }
 
 type TGBot struct {
 	Addr    string        `yaml:"addr" env-required:"true"`
 	Timeout time.Duration `yaml:"timeout" env-default:"5s"`
+}
+
+type Kafka struct {
+	Addr    string        `yaml:"addr" env-required:"true"`
+	Topic   string        `yaml:"topic"`
+	Timeout time.Duration `yaml:"timeout" env-default:"5s"`
+	Retry   int           `yaml:"retry" env-default:"5"`
 }
 
 type PostgresConfig struct {
@@ -54,16 +62,4 @@ func MustLoadConfig() *Config {
 	cfg.GitHubToken = os.Getenv("GITHUB_TOKEN")
 
 	return &cfg
-}
-
-func loadEnv() {
-	projectName := regexp.MustCompile(`^(.*` + "scrapper" + `)`)
-	currentWorkDirectory, _ := os.Getwd()
-	rootPath := projectName.Find([]byte(currentWorkDirectory))
-
-	err := godotenv.Load(string(rootPath) + `/scrapper` + `/.env`)
-
-	if err != nil {
-		log.Fatalf("Error loading .env file")
-	}
 }

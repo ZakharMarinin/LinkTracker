@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"linktracker/internal/application"
+	"linktracker/internal/clients/kafka"
 	"linktracker/internal/clients/scrapper"
 	"linktracker/internal/config"
 	"linktracker/internal/http-server/handlers"
@@ -49,7 +50,9 @@ func main() {
 
 	useCase := usecase.New(log, client, rPersistence)
 
-	bot, err := botRun(cfg, log, useCase, httpRouter)
+	kafkaConsumer := kafka.NewConsumer(cfg)
+
+	bot, err := botRun(cfg, log, useCase)
 	if err != nil {
 		log.Error("Cannot start bot", err)
 		panic(err)
@@ -60,7 +63,7 @@ func main() {
 
 	tgRouter.Router(bot, ctx)
 
-	app := application.NewApplication(ctx, cfg, log, httpRouter, bot)
+	app := application.NewApplication(ctx, cfg, log, httpRouter, bot, kafkaConsumer)
 
 	app.MustRun()
 
@@ -68,10 +71,11 @@ func main() {
 	signal.Notify(stop, os.Interrupt)
 	<-stop
 
+	cancel()
 	app.Shutdown()
 }
 
-func botRun(cfg *config.Config, log *slog.Logger, useCase *usecase.UseCase, httpRouter *chi.Mux) (*tgHandlers.BotHandler, error) {
+func botRun(cfg *config.Config, log *slog.Logger, useCase *usecase.UseCase) (*tgHandlers.BotHandler, error) {
 	pref := telebot.Settings{
 		Token:  cfg.TgBot.TgToken,
 		Poller: &telebot.LongPoller{Timeout: 10 * time.Second},

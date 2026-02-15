@@ -26,7 +26,7 @@ func NewRedisCom(db *redis.Client, log *slog.Logger) *RedisCom {
 }
 
 func (r *RedisCom) SetTempUserState(ctx context.Context, userInfo *domain.UserStateInfo) error {
-	err := r.DB.HSet(ctx, fmt.Sprintf("TempUserState:%s", userInfo.UserID), map[string]any{
+	err := r.DB.HSet(ctx, fmt.Sprintf("TempUserState:%d", userInfo.UserID), map[string]any{
 		"UserID": userInfo.UserID,
 		"URL":    userInfo.URL,
 		"Desc":   userInfo.Desc,
@@ -38,7 +38,7 @@ func (r *RedisCom) SetTempUserState(ctx context.Context, userInfo *domain.UserSt
 		return err
 	}
 
-	err = r.DB.Expire(ctx, fmt.Sprintf("TempUserState:%s", userInfo.UserID), 2*time.Hour).Err()
+	err = r.DB.Expire(ctx, fmt.Sprintf("TempUserState:%d", userInfo.UserID), 2*time.Hour).Err()
 	if err != nil {
 		r.log.Error("SetUser", "err", err)
 		return err
@@ -48,7 +48,7 @@ func (r *RedisCom) SetTempUserState(ctx context.Context, userInfo *domain.UserSt
 }
 
 func (r *RedisCom) GetTempUserState(ctx context.Context, userID int64) (*domain.UserStateInfo, error) {
-	val, err := r.DB.HGetAll(ctx, fmt.Sprintf("TempUserState:%s", userID)).Result()
+	val, err := r.DB.HGetAll(ctx, fmt.Sprintf("TempUserState:%d", userID)).Result()
 	if err != nil {
 		r.log.Error("GetTempUserState", "err", err)
 		return nil, err
@@ -71,7 +71,7 @@ func (r *RedisCom) SaveTempUserLinks(ctx context.Context, tempUserLinks *TempUse
 		r.log.Error("SaveTempUserLinks", "err", err)
 		return err
 	}
-	err = r.DB.HSet(ctx, fmt.Sprintf("TempUserLinks:%s", tempUserLinks.UserID), map[string]any{
+	err = r.DB.HSet(ctx, fmt.Sprintf("TempUserLinks:%d", tempUserLinks.UserID), map[string]any{
 		"user_id": tempUserLinks.UserID,
 		"links":   links,
 	}).Err()
@@ -80,7 +80,7 @@ func (r *RedisCom) SaveTempUserLinks(ctx context.Context, tempUserLinks *TempUse
 		return err
 	}
 
-	err = r.DB.Expire(ctx, fmt.Sprintf("TempUserLinks:%s", tempUserLinks.UserID), 2*time.Hour).Err()
+	err = r.DB.Expire(ctx, fmt.Sprintf("TempUserLinks:%d", tempUserLinks.UserID), 2*time.Hour).Err()
 	if err != nil {
 		r.log.Error("SetUser", "err", err)
 		return err
@@ -90,7 +90,7 @@ func (r *RedisCom) SaveTempUserLinks(ctx context.Context, tempUserLinks *TempUse
 }
 
 func (r *RedisCom) GetTempUserLinks(ctx context.Context, userID int64) (*TempUserLinks, error) {
-	val, err := r.DB.HGetAll(ctx, fmt.Sprintf("TempUserLinks:%s", userID)).Result()
+	val, err := r.DB.HGetAll(ctx, fmt.Sprintf("TempUserLinks:%d", userID)).Result()
 	if err != nil {
 		r.log.Error("GetTempUserLinks: error HGetAll", "err", err)
 		return nil, err

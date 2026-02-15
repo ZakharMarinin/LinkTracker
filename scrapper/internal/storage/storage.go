@@ -265,31 +265,6 @@ func (s *PostgresStorage) GetLinksByChatID(ctx context.Context, chatID int64) ([
 	return links, nil
 }
 
-func (s *PostgresStorage) GetLinkIDByURL(ctx context.Context, url string) (*domain.Link, error) {
-	const op = "storage.postgres.GetLinkByURL"
-
-	query, args, err := sq.
-		Select("link_id").
-		From("links").
-		Where(sq.Eq{"url": url}).
-		PlaceholderFormat(sq.Dollar).
-		ToSql()
-
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
-	}
-
-	rows := s.DB.QueryRow(ctx, query, args...)
-
-	var link domain.Link
-
-	if err := rows.Scan(&link.ID); err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
-	}
-
-	return &link, nil
-}
-
 func (s *PostgresStorage) GetLinkByAlias(ctx context.Context, chatID int64, alias string) (*domain.Link, error) {
 	const op = "storage.postgres.GetLinkByAlias"
 

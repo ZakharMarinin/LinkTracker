@@ -2,12 +2,21 @@ package usecase
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"scrapper/internal/domain"
 	"strings"
 )
 
 func (u *UseCase) AddLink(ctx context.Context, chatID int64, url, desc, tags string) error {
+	if chatID == 0 {
+		return errors.New("invalid chat id")
+	}
+	
+	if url == "" {
+		return errors.New("invalid url")
+	}
+
 	exists, err := u.db.IsLinkExists(ctx, url)
 	if err != nil {
 		u.log.Error("Error while checking if link exists", "error", err)

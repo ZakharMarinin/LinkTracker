@@ -14,7 +14,7 @@ func (u *UseCase) GetLinks(ctx context.Context, id int64) ([]*domain.Link, error
 	links, err := u.Storage.GetTempUserLinks(ctx, id)
 	if err != nil {
 		isCached = false
-		u.log.Error("GetLinks: error getting temp user links: ", err)
+		u.log.Error("GetLinks: error getting temp user links: ", "error", err)
 	}
 
 	if links == nil {
@@ -36,13 +36,13 @@ func (u *UseCase) GetLinks(ctx context.Context, id int64) ([]*domain.Link, error
 
 		err = u.Storage.SaveTempUserLinks(ctx, tempUserLinks)
 		if err != nil {
-			u.log.Error("GetLinks: Error saving temp user links: ", err)
+			u.log.Error("GetLinks: Error saving temp user links: ", "error", err)
 		}
 
 		return resp, nil
 	}
 
 	u.log.Info("GetLinks: Cache validating link successfully")
-	
+
 	return links.Links, nil
 }

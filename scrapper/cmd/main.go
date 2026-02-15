@@ -7,7 +7,7 @@ import (
 	"os/signal"
 	"scrapper/internal/application"
 	"scrapper/internal/client/githubClient"
-	"scrapper/internal/client/tgBotClient"
+	"scrapper/internal/client/sender"
 	"scrapper/internal/config"
 	cronModule "scrapper/internal/cron"
 	"scrapper/internal/http/handlers"
@@ -45,13 +45,17 @@ func main() {
 
 	httpRouter := chi.NewRouter()
 
-	useCase := usecase.NewUseCase(db, log, ctx, cfg)
+	useCase := usecase.NewUseCase(db, log, cfg)
 
 	gitClient := githubClient.NewGithubClient(cfg.GitHubToken, log)
 
-	tgClient := tgBotClient.NewTGClient(log, cfg)
+	senderType, err := sender.New(log, cfg)
+	if err != nil {
+		log.Error("failed to initialize sender", "error", err)
+		return
+	}
 
-	cron, err := setupCron(log, db, gitClient, tgClient, 100)
+	cron, err := setupCron(log, db, gitClient, senderType, 100)
 	if err != nil {
 		log.Error("failed to setup cron", "error", err)
 		return
@@ -72,9 +76,9 @@ func main() {
 	app.Shutdown()
 }
 
-func setupCron(log *slog.Logger, db *storage.PostgresStorage, gitClient *githubClient.GithubClient, tgClient *tgBotClient.Client, limit uint64) (*cronModule.Cron, error) {
+func setupCron(log *slog.Logger, db *storage.PostgresStorage, gitClient *githubClient.GithubClient, sender *sender.TypeOfSender, limit uint64) (*cronModule.Cron, error) {
 	startCron := gocron.NewScheduler(time.UTC)
-	cron := cronModule.New(log, startCron, db, gitClient, tgClient, limit)
+	cron := cronModule.New(log, startCron, db, gitClient, sender, limit)
 
 	_, err := cron.Cron.Every(1).Minutes().Do(cron.StartCron)
 	if err != nil {
