@@ -13,26 +13,29 @@ func (h *HTTP) DeleteChat(ctx context.Context) http.HandlerFunc {
 		chatID := chi.URLParam(r, "id")
 
 		if chatID == "" {
-			h.log.Error("Empty chat ID")
+			h.log.Error("Empty chat ID", "chat ID", chatID)
 			w.WriteHeader(http.StatusBadRequest)
+
 			return
 		}
 
 		intChatID, err := strconv.ParseInt(chatID, 10, 64)
 		if err != nil {
-			h.log.Error("could not parse int chatID")
+			h.log.Error("could not parse int chatID", "error", err)
 			w.WriteHeader(http.StatusBadRequest)
+
 			return
 		}
 
 		err = h.useCase.DeleteChat(ctx, intChatID)
 		if err != nil {
-			h.log.Error("could not delete chat")
+			h.log.Error("could not delete chat", "error", err)
 			w.WriteHeader(http.StatusBadRequest)
+
 			return
 		}
 
-		h.log.Info("successfully deleted chat")
+		h.log.Info("successfully deleted chat", "chatID", chatID)
 		w.WriteHeader(http.StatusOK)
 	}
 }

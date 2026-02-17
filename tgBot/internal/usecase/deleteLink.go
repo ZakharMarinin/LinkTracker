@@ -6,19 +6,19 @@ import (
 )
 
 func (u *UseCase) DeleteLink(ctx context.Context, id int64, alias string) error {
-	u.log.Info("Starting DeleteLink")
+	u.Log.Info("Starting DeleteLink")
 
 	err := u.ScrapperClient.DeleteLink(ctx, id, alias)
 	if err != nil {
-		u.log.Error(err.Error())
+		u.Log.Error(err.Error())
 		return err
 	}
 
-	u.log.Info("DeleteLink: Cache invalidating link")
+	u.Log.Info("DeleteLink: Cache invalidating link")
 
 	links, err := u.Storage.GetTempUserLinks(ctx, id)
 	if err != nil {
-		u.log.Error("AddLink: cannot s%w", "error", err)
+		u.Log.Error("AddLink: cannot s%w", "error", err)
 	}
 
 	if links != nil {
@@ -32,7 +32,7 @@ func (u *UseCase) DeleteLink(ctx context.Context, id int64, alias string) error 
 
 		err = u.Storage.SaveTempUserLinks(ctx, links)
 		if err != nil {
-			u.log.Error("AddLink: cannot s%w", "error", err)
+			u.Log.Error("AddLink: cannot s%w", "error", err)
 		}
 	}
 

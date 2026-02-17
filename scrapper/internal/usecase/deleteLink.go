@@ -14,9 +14,9 @@ func (u *UseCase) DeleteLink(ctx context.Context, chatID int64, alias string) er
 		return errors.New("invalid alias")
 	}
 
-	err := u.db.DeleteUserLink(ctx, chatID, alias)
+	err := u.DB.DeleteUserLink(ctx, chatID, alias)
 	if err != nil {
-		u.log.Error("DeleteLink: " + "Can't delete link" + err.Error())
+		u.Log.Error("DeleteLink: " + "Can't delete link" + err.Error())
 		return err
 	}
 

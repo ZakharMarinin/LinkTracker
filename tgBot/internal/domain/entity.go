@@ -2,7 +2,7 @@ package domain
 
 const (
 	WaitingCommand     = "waiting_command"
-	WaitingURl         = "waiting_url"
+	WaitingURL         = "waiting_url"
 	WaitingDescription = "waiting_description"
 	WaitingTags        = "waiting_tags"
 	WaitingDelete      = "waiting_delete"

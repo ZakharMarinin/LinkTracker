@@ -1,8 +1,9 @@
-package usecase
+package usecase_test
 
 import (
 	"context"
 	"errors"
+	"linktracker/internal/usecase"
 	mocks "linktracker/internal/usecase/mocks"
 	"log/slog"
 	"os"
@@ -12,13 +13,15 @@ import (
 func TestUseCase_CreateChat(t *testing.T) {
 	type fields struct {
 		log            *slog.Logger
-		ScrapperClient ScrapperClient
-		Storage        Storage
+		ScrapperClient usecase.ScrapperClient
+		Storage        usecase.Storage
 	}
+
 	type args struct {
 		ctx    context.Context
 		chatID int64
 	}
+
 	tests := []struct {
 		name    string
 		fields  fields
@@ -41,6 +44,7 @@ func TestUseCase_CreateChat(t *testing.T) {
 			wantErr: true,
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockClient := mocks.NewMockScrapperClient(t)
@@ -54,14 +58,16 @@ func TestUseCase_CreateChat(t *testing.T) {
 					if chatID != 0 {
 						return nil
 					}
+
 					return errors.New("invalid id")
 				}(tt.args.chatID))
 
-			u := &UseCase{
-				log:            log,
+			u := &usecase.UseCase{
+				Log:            log,
 				ScrapperClient: mockClient,
 				Storage:        mockStorage,
 			}
+
 			if err := u.CreateChat(tt.args.ctx, tt.args.chatID); (err != nil) != tt.wantErr {
 				t.Errorf("CreateChat() error = %v, wantErr %v", err, tt.wantErr)
 			}

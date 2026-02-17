@@ -17,9 +17,9 @@ func (u *UseCase) GetFilteredLinks(ctx context.Context, chatID int64, tags strin
 		return nil, errors.New("invalid tags")
 	}
 
-	links, err := u.db.GetUserLinksByTag(ctx, chatID, tags)
+	links, err := u.DB.GetUserLinksByTag(ctx, chatID, tags)
 	if err != nil {
-		u.log.Error("GetFilteredLinks: err with taking links: ", "op", op, "err", err)
+		u.Log.Error("GetFilteredLinks: err with taking links: ", "op", op, "err", err)
 		return nil, err
 	}
 

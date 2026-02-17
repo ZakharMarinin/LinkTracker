@@ -1,7 +1,7 @@
 GO_TEST_FLAGS ?= -v -race -cover
 INTEGRATION_TAG := integration
 
-.PHONY: test test-integration clean
+.PHONY: test test-integration lint clean
 
 test:
 	@echo "Launching go tests"
@@ -16,6 +16,10 @@ cover-html:
 	go test -coverprofile=coverage.out ./internal/usecase
 	go tool cover -html=coverage.out
 	@rm coverage.out
+
+lint:
+	@echo "---Linter launching---"
+	golangci-lint run
 
 clean:
 	@echo "---Cleaning---"

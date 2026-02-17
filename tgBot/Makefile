@@ -1,6 +1,6 @@
 GO_TEST_FLAGS ?= -v -race -cover
 
-.PHONY: test clean
+.PHONY: test lint clean
 
 test:
 	@echo "---Launching go tests---"
@@ -11,6 +11,14 @@ cover-html:
 	go test -coverprofile=coverage.out ./internal/usecase
 	go tool cover -html=coverage.out
 	@rm coverage.out
+
+lint:
+	@echo "---Linter launching---"
+	golangci-lint run
+
+start:
+	@echo "---Project start---"
+	go run main.go ./cmd
 
 clean:
 	@echo "---Cleaning---"

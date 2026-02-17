@@ -1,4 +1,4 @@
-package usecase
+package usecase_test
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 	"os"
 	"scrapper/internal/config"
 	"scrapper/internal/domain"
+	"scrapper/internal/usecase"
 	mocks "scrapper/internal/usecase/mocks"
 	"strings"
 	"testing"
@@ -15,10 +16,11 @@ import (
 
 func TestUseCase_AddLink(t *testing.T) {
 	type fields struct {
-		db  Postgres
+		db  *mocks.MockPostgres
 		log *slog.Logger
 		cfg *config.Config
 	}
+
 	type args struct {
 		ctx    context.Context
 		chatID int64
@@ -26,6 +28,7 @@ func TestUseCase_AddLink(t *testing.T) {
 		desc   string
 		tags   string
 	}
+
 	tests := []struct {
 		name    string
 		fields  fields
@@ -64,6 +67,7 @@ func TestUseCase_AddLink(t *testing.T) {
 			wantErr: true,
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockPostgres := mocks.NewMockPostgres(t)
@@ -98,15 +102,17 @@ func TestUseCase_AddLink(t *testing.T) {
 				Maybe().
 				Return(nil)
 
-			u := &UseCase{
-				db:  mockPostgres,
-				log: log,
-				cfg: cfg,
+			u := &usecase.UseCase{
+				DB:  mockPostgres,
+				Log: log,
+				Cfg: cfg,
 			}
+
 			err := u.AddLink(tt.args.ctx, tt.args.chatID, tt.args.url, tt.args.desc, tt.args.tags)
 			if err != nil && !tt.wantErr {
 				t.Errorf("AddLink() error = %v, wantErr %v", err, tt.wantErr)
 			}
+
 			if tt.wantErr {
 				require.Error(t, err)
 			}
@@ -116,7 +122,7 @@ func TestUseCase_AddLink(t *testing.T) {
 
 func TestUseCase_ExistedLink(t *testing.T) {
 	type fields struct {
-		db  Postgres
+		db  usecase.Postgres
 		log *slog.Logger
 		cfg *config.Config
 	}
@@ -145,6 +151,7 @@ func TestUseCase_ExistedLink(t *testing.T) {
 			wantErr: true,
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockPostgres := mocks.NewMockPostgres(t)
@@ -179,16 +186,17 @@ func TestUseCase_ExistedLink(t *testing.T) {
 				Maybe().
 				Return(nil)
 
-			u := &UseCase{
-				db:  mockPostgres,
-				log: log,
-				cfg: cfg,
+			u := &usecase.UseCase{
+				DB:  mockPostgres,
+				Log: log,
+				Cfg: cfg,
 			}
 
 			err := u.AddLink(tt.args.ctx, tt.args.chatID, tt.args.url, tt.args.desc, tt.args.tags)
 			if err != nil && !tt.wantErr {
 				t.Errorf("AddLink() error = %v, wantErr %v", err, tt.wantErr)
 			}
+
 			if tt.wantErr {
 				require.Error(t, err)
 			}

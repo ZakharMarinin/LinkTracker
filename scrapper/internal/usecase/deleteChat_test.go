@@ -1,10 +1,11 @@
-package usecase
+package usecase_test
 
 import (
 	"context"
 	"log/slog"
 	"os"
 	"scrapper/internal/config"
+	"scrapper/internal/usecase"
 	mocks "scrapper/internal/usecase/mocks"
 	"testing"
 
@@ -13,14 +14,16 @@ import (
 
 func TestUseCase_DeleteChat(t *testing.T) {
 	type fields struct {
-		db  Postgres
+		db  *mocks.MockPostgres
 		log *slog.Logger
 		cfg *config.Config
 	}
+
 	type args struct {
 		ctx    context.Context
 		chatID int64
 	}
+
 	tests := []struct {
 		name    string
 		fields  fields
@@ -43,6 +46,7 @@ func TestUseCase_DeleteChat(t *testing.T) {
 			wantErr: true,
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockPostgres := mocks.NewMockPostgres(t)
@@ -54,15 +58,17 @@ func TestUseCase_DeleteChat(t *testing.T) {
 				Maybe().
 				Return(nil)
 
-			u := &UseCase{
-				db:  mockPostgres,
-				log: log,
-				cfg: cfg,
+			u := &usecase.UseCase{
+				DB:  mockPostgres,
+				Log: log,
+				Cfg: cfg,
 			}
+
 			err := u.DeleteChat(tt.args.ctx, tt.args.chatID)
 			if err != nil && !tt.wantErr {
 				t.Errorf("DeleteChat() error = %v, wantErr %v", err, tt.wantErr)
 			}
+
 			if tt.wantErr {
 				require.Error(t, err)
 			}

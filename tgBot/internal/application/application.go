@@ -4,45 +4,31 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"linktracker/internal/clients/kafka"
 	"linktracker/internal/config"
+	"linktracker/internal/dicontainer"
 	"linktracker/internal/domain"
-	tgHandlers "linktracker/internal/telegramBot/handlers"
 	"log/slog"
 	"net/http"
 	"sync"
 	"time"
-
-	"github.com/go-chi/chi/v5"
 )
 
 type Application struct {
-	ctx    context.Context
-	cfg    *config.Config
-	log    *slog.Logger
-	wg     *sync.WaitGroup
-	server *http.Server
-	bot    *tgHandlers.BotHandler
-	kafka  *kafka.Consumer
+	ctx       context.Context
+	cfg       *config.Config
+	log       *slog.Logger
+	container *dicontainer.Container
+	wg        *sync.WaitGroup
+	server    *http.Server
 }
 
-func NewApplication(ctx context.Context, cfg *config.Config, log *slog.Logger, router *chi.Mux, bot *tgHandlers.BotHandler, consumer *kafka.Consumer) *Application {
-	srv := &http.Server{
-		Addr:         cfg.HttpServer.Address,
-		Handler:      router,
-		ReadTimeout:  cfg.HttpServer.Timeout,
-		WriteTimeout: cfg.HttpServer.Timeout,
-		IdleTimeout:  cfg.HttpServer.IdleTimeout,
-	}
-
+func NewApplication(ctx context.Context, cfg *config.Config, log *slog.Logger) *Application {
 	return &Application{
-		ctx:    ctx,
-		cfg:    cfg,
-		log:    log,
-		wg:     &sync.WaitGroup{},
-		server: srv,
-		bot:    bot,
-		kafka:  consumer,
+		ctx:       ctx,
+		cfg:       cfg,
+		log:       log,
+		container: dicontainer.NewContainer(log, cfg),
+		wg:        &sync.WaitGroup{},
 	}
 }
 
@@ -54,26 +40,43 @@ func (a *Application) MustRun() {
 }
 
 func (a *Application) Run() error {
+	err := a.container.Init(a.ctx)
+	if err != nil {
+		a.log.Error("Failed to init container", "error", err)
+		return err
+	}
+
+	a.server = &http.Server{
+		Addr:         a.cfg.HTTPServer.Address,
+		Handler:      a.container.HTTPRouter,
+		ReadTimeout:  a.cfg.HTTPServer.Timeout,
+		WriteTimeout: a.cfg.HTTPServer.Timeout,
+		IdleTimeout:  a.cfg.HTTPServer.IdleTimeout,
+	}
+
 	a.wg.Add(1)
+
 	go func() {
 		defer a.wg.Done()
-		a.bot.Bot.Start()
+		a.container.Bot.Bot.Start()
 
 		a.log.Info("Run: bot started")
 	}()
 
 	a.wg.Add(1)
+
 	go func() {
 		defer a.wg.Done()
 		a.log.Info("Run: server started")
 
 		err := a.server.ListenAndServe()
 		if err != nil {
-			a.log.Error("ListenAndServe: ", err)
+			a.log.Error("ListenAndServe", "error", err)
 		}
 	}()
 
 	a.wg.Add(1)
+
 	go func() {
 		defer a.wg.Done()
 		a.StartKafkaConsumer()
@@ -93,32 +96,37 @@ func (a *Application) StartKafkaConsumer() {
 		default:
 		}
 
-		msg, err := a.kafka.ReadMessage(a.ctx)
+		msg, err := a.container.Kafka.ReadMessage(a.ctx)
 		if err != nil {
 			if errors.Is(err, context.Canceled) {
 				a.log.Info("Run: kafka consumer stopped")
 				return
 			}
-			a.log.Error("Run: kafka consumer read error: ", err)
+
+			a.log.Error("Run: kafka consumer read error", "error", err)
+
 			time.Sleep(2 * time.Second)
+
 			continue
 		}
 
 		var update domain.UpdatedLink
+
 		err = json.Unmarshal(msg.Value, &update)
 		if err != nil {
-			_ = a.kafka.CommitMessage(a.ctx, msg)
+			_ = a.container.Kafka.CommitMessage(a.ctx, msg)
 			continue
 		}
 
-		err = a.bot.Updates(&update)
+		err = a.container.Bot.Updates(&update)
 		if err != nil {
 			a.log.Error("failed to send updates", "error", err)
 			time.Sleep(2 * time.Second)
+
 			continue
 		}
 
-		_ = a.kafka.CommitMessage(a.ctx, msg)
+		_ = a.container.Kafka.CommitMessage(a.ctx, msg)
 	}
 }
 
@@ -133,7 +141,7 @@ func (a *Application) Shutdown() {
 		a.log.Error("Shutdown: failed to shutdown server", "error", err)
 	}
 
-	a.bot.Bot.Stop()
+	a.container.Bot.Bot.Stop()
 
 	a.wg.Wait()
 	a.log.Info("Shutdown: completed graceful shutdown")

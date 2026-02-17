@@ -10,9 +10,9 @@ func (u *UseCase) CreateChat(ctx context.Context, chatID int64) error {
 		return errors.New("invalid chat id")
 	}
 
-	err := u.db.CreateChat(ctx, chatID)
+	err := u.DB.CreateChat(ctx, chatID)
 	if err != nil {
-		u.log.Error("failed to create chat", "chatID", chatID, "error", err)
+		u.Log.Error("failed to create chat", "chatID", chatID, "error", err)
 		return err
 	}
 

@@ -1,4 +1,4 @@
-package usecase
+package usecase_test
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"scrapper/internal/config"
 	"scrapper/internal/domain"
+	"scrapper/internal/usecase"
 	mocks "scrapper/internal/usecase/mocks"
 	"testing"
 
@@ -15,15 +16,17 @@ import (
 
 func TestUseCase_GetFilteredLinks(t *testing.T) {
 	type fields struct {
-		db  Postgres
+		db  *mocks.MockPostgres
 		log *slog.Logger
 		cfg *config.Config
 	}
+
 	type args struct {
 		ctx    context.Context
 		chatID int64
 		tags   string
 	}
+
 	tests := []struct {
 		name    string
 		fields  fields
@@ -60,6 +63,7 @@ func TestUseCase_GetFilteredLinks(t *testing.T) {
 			wantErr: true,
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockPostgres := mocks.NewMockPostgres(t)
@@ -71,19 +75,22 @@ func TestUseCase_GetFilteredLinks(t *testing.T) {
 				Maybe().
 				Return([]*domain.Link{}, nil)
 
-			u := &UseCase{
-				db:  mockPostgres,
-				log: log,
-				cfg: cfg,
+			u := &usecase.UseCase{
+				DB:  mockPostgres,
+				Log: log,
+				Cfg: cfg,
 			}
+
 			got, err := u.GetFilteredLinks(tt.args.ctx, tt.args.chatID, tt.args.tags)
 			if err != nil && !tt.wantErr {
 				t.Errorf("GetFilteredLinks() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
+
 			if tt.wantErr {
 				require.Error(t, err)
 			}
+
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("GetFilteredLinks() got = %v, want %v", got, tt.want)
 			}

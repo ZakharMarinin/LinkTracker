@@ -26,15 +26,18 @@ func New(log *slog.Logger) func(next http.Handler) http.Handler {
 
 			t1 := time.Now()
 			defer func() {
+				duration := time.Since(t1)
+
 				entry.Info("request completed",
 					slog.Int("status", ww.Status()),
 					slog.Int("bites", ww.BytesWritten()),
-					slog.String("duration", time.Since(t1).String()),
+					slog.String("duration", duration.String()),
 				)
 			}()
 
 			next.ServeHTTP(ww, r)
 		}
+
 		return http.HandlerFunc(fn)
 	}
 }

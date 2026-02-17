@@ -23,15 +23,15 @@ type Postgres interface {
 }
 
 type UseCase struct {
-	db  Postgres
-	log *slog.Logger
-	cfg *config.Config
+	DB  Postgres
+	Log *slog.Logger
+	Cfg *config.Config
 }
 
 func NewUseCase(db Postgres, log *slog.Logger, cfg *config.Config) *UseCase {
 	return &UseCase{
-		db:  db,
-		log: log,
-		cfg: cfg,
+		DB:  db,
+		Log: log,
+		Cfg: cfg,
 	}
 }

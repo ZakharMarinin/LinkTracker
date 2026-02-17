@@ -16,20 +16,23 @@ func (h *HTTP) CreateChat(ctx context.Context) http.HandlerFunc {
 		if chatID == "" {
 			h.log.Error("Empty chat ID")
 			w.WriteHeader(http.StatusBadRequest)
+
 			return
 		}
 
 		intChatID, err := strconv.ParseInt(chatID, 10, 64)
 		if err != nil {
-			h.log.Error("could not parse int chatID")
+			h.log.Error("could not parse int chatID", "error", err)
 			w.WriteHeader(http.StatusBadRequest)
+
 			return
 		}
 
 		err = h.useCase.CreateChat(ctx, intChatID)
 		if err != nil {
 			h.log.Error("CreateChat", "error", err)
-			w.WriteHeader(http.StatusInternalServerError)
+			w.WriteHeader(http.StatusBadRequest)
+
 			return
 		}
 

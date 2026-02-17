@@ -1,4 +1,4 @@
-package cronModule
+package cronmodule
 
 import (
 	"context"
@@ -47,6 +47,7 @@ func New(log *slog.Logger, cron *gocron.Scheduler, storage Storage, github Githu
 
 func (c *Cron) StartCron() {
 	var offset uint64
+
 	ctx := context.Background()
 
 	c.log.Info("starting cron job")
@@ -82,6 +83,7 @@ func (c *Cron) StartWorkers(ctx context.Context, links []domain.Link) {
 				if err != nil {
 					c.log.Error("failed to process link", "error", err)
 				}
+
 				wg.Done()
 			}
 		}()
@@ -106,6 +108,7 @@ func (c *Cron) ProcessLink(ctx context.Context, link *domain.Link) error {
 		if err != nil {
 			return err
 		}
+
 		if update.PullRequests != nil || update.Issues != nil {
 			message = CreateUpdateText(update)
 		} else {
@@ -126,16 +129,19 @@ func (c *Cron) ProcessLink(ctx context.Context, link *domain.Link) error {
 	_, err := c.Storage.UpdateLink(ctx, link)
 	if err != nil {
 		c.log.Error("failed to update link", "error", err)
+
 		return err
 	}
 
 	err = c.SendUpdate(ctx, link, message)
 	if err != nil {
 		c.log.Error("failed to send update", "error", err)
+
 		return err
 	}
 
 	c.log.Info("processed link", "url", link.URL)
+
 	return nil
 }
 
@@ -165,15 +171,15 @@ func CreateUpdateText(repoData *domain.GitHubContent) string {
 
 	for _, i := range repoData.Issues {
 		formatTine := i.UpdatedAt.Format("2006-01-02 15:04")
-		formatUser := strings.Replace(fmt.Sprint(i.User), "{", "", -1)
-		formatUser = strings.Replace(formatUser, "}", "", -1)
+		formatUser := strings.ReplaceAll(fmt.Sprint(i.User), "{", "")
+		formatUser = strings.ReplaceAll(formatUser, "}", "")
 		message += fmt.Sprintf("Тип: Issue\nЗаголовок: %s\nОписание: %s\nКем: %s\nКогда: %s\n\n", i.Title, i.Body, formatUser, formatTine)
 	}
 
 	for _, i := range repoData.PullRequests {
 		formatTine := i.UpdatedAt.Format("2006-01-02 15:04")
-		formatUser := strings.Replace(fmt.Sprint(i.User), "{", "", -1)
-		formatUser = strings.Replace(formatUser, "}", "", -1)
+		formatUser := strings.ReplaceAll(fmt.Sprint(i.User), "{", "")
+		formatUser = strings.ReplaceAll(formatUser, "}", "")
 		message += fmt.Sprintf("Тип: PullRequest\nЗаголовок: %s\nОписание: %s\nКем: %s\nКогда: %s\n\n", i.Title, i.Body, formatUser, formatTine)
 	}
 

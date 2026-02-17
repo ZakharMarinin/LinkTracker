@@ -22,6 +22,7 @@ func NewProducer(cfg *config.Config) *Producer {
 		BatchTimeout: cfg.Kafka.Timeout,
 		MaxAttempts:  cfg.Kafka.Retry,
 	}
+
 	return &Producer{
 		kafkaWriter: w,
 	}

@@ -12,7 +12,7 @@ import (
 type Config struct {
 	Env           string         `yaml:"env" env-default:"local"`
 	TransportType string         `yaml:"transport_type" env-default:"http"`
-	HttpServer    HttpServer     `yaml:"http_server"`
+	HTTPServer    HTTPServer     `yaml:"http_server"`
 	Postgres      PostgresConfig `yaml:"postgres"`
 	GitHubToken   string         `yaml:"github_token"`
 	TgBot         TGBot          `yaml:"tgbot"`
@@ -35,10 +35,11 @@ type PostgresConfig struct {
 	Addr string `yaml:"addr"`
 }
 
-type HttpServer struct {
+type HTTPServer struct {
 	Address     string        `yaml:"address" env-default:"localhost:8081"`
 	Timeout     time.Duration `yaml:"timeout"`
 	IdleTimeout time.Duration `yaml:"idle_timeout"`
+	Retry       int           `yaml:"retry" env-default:"5"`
 }
 
 func MustLoadConfig() *Config {
@@ -53,12 +54,13 @@ func MustLoadConfig() *Config {
 	}
 
 	var cfg Config
+
 	err = cleanenv.ReadConfig(configPath, &cfg)
 	if err != nil {
 		log.Fatal("cannot find the config: ", err)
 	}
 
-	cfg.Postgres.Addr = os.Getenv("GOOSE_DBSTRING")
+	cfg.Postgres.Addr = os.Getenv("PG_ADDR")
 	cfg.GitHubToken = os.Getenv("GITHUB_TOKEN")
 
 	return &cfg

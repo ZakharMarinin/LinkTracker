@@ -1,4 +1,4 @@
-package tgRouter
+package tgrouter
 
 import (
 	"context"

@@ -2,19 +2,13 @@ package storage
 
 import (
 	"context"
-	"embed"
 	"fmt"
 	"scrapper/internal/domain"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/jackc/pgx/v5/stdlib"
-	"github.com/pressly/goose/v3"
 )
-
-//go:embed migrations/*.sql
-var embedMigrations embed.FS
 
 type PostgresStorage struct {
 	DB *pgxpool.Pool
@@ -22,10 +16,6 @@ type PostgresStorage struct {
 
 func New(ctx context.Context, storagePath string) (*PostgresStorage, error) {
 	const op = "storage.postgresql.SQL.NEW"
-
-	if err := runMigrations(storagePath); err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
-	}
 
 	poolConfig, err := pgxpool.ParseConfig(storagePath)
 	if err != nil {
@@ -38,28 +28,6 @@ func New(ctx context.Context, storagePath string) (*PostgresStorage, error) {
 	}
 
 	return &PostgresStorage{DB: db}, nil
-}
-
-func runMigrations(dbURL string) error {
-	config, err := pgxpool.ParseConfig(dbURL)
-	if err != nil {
-		return err
-	}
-
-	db := stdlib.OpenDB(*config.ConnConfig)
-	defer db.Close()
-
-	goose.SetBaseFS(embedMigrations)
-
-	if err := goose.SetDialect("postgres"); err != nil {
-		return err
-	}
-
-	if err := goose.Up(db, "migrations"); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (s *PostgresStorage) Close() error {
@@ -133,11 +101,14 @@ func (s *PostgresStorage) GetLinksToCheck(ctx context.Context, limit, offset uin
 	defer rows.Close()
 
 	var links []domain.Link
+
 	for rows.Next() {
 		var link domain.Link
+
 		if err := rows.Scan(&link.ChatID, &link.ID, &link.URL, &link.Alias, &link.LastUpdated); err != nil {
 			return nil, fmt.Errorf("%s: %w", op, err)
 		}
+
 		links = append(links, link)
 	}
 
@@ -173,9 +144,11 @@ func (s *PostgresStorage) GetLinks(ctx context.Context, limit, offset uint64) ([
 
 	for rows.Next() {
 		var link domain.Link
+
 		if err := rows.Scan(&link.ID, &link.URL, &link.Alias, &link.LastUpdated); err != nil {
 			return nil, fmt.Errorf("%s: %w", op, err)
 		}
+
 		links = append(links, link)
 	}
 
@@ -208,15 +181,18 @@ func (s *PostgresStorage) GetUserLinksByTag(ctx context.Context, chatID int64, t
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
-
 	defer rows.Close()
+
 	var links []*domain.Link
+
 	for rows.Next() {
 		var link domain.Link
+
 		err := rows.Scan(&link.ID, &link.URL, &link.Alias, &link.Desc, &link.Tags)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", op, err)
 		}
+
 		links = append(links, &link)
 	}
 
@@ -252,9 +228,11 @@ func (s *PostgresStorage) GetLinksByChatID(ctx context.Context, chatID int64) ([
 
 	for rows.Next() {
 		var link domain.Link
+
 		if err := rows.Scan(&link.ID, &link.URL, &link.Alias, &link.Desc, &link.Tags); err != nil {
 			return nil, fmt.Errorf("%s: %w", op, err)
 		}
+
 		links = append(links, link)
 	}
 
@@ -305,6 +283,7 @@ func (s *PostgresStorage) GetLinkByURL(ctx context.Context, url string) (*domain
 	}
 
 	var link domain.Link
+
 	err = s.DB.QueryRow(ctx, query, args...).Scan(&link.ID, &link.URL, &link.Alias, &link.LastUpdated)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
@@ -330,6 +309,7 @@ func (s *PostgresStorage) IsLinkExists(ctx context.Context, url string) (bool, e
 	}
 
 	var exists bool
+
 	err = s.DB.QueryRow(ctx, query, args...).Scan(&exists)
 	if err != nil {
 		return false, fmt.Errorf("%s: %w", op, err)
@@ -355,6 +335,7 @@ func (s *PostgresStorage) IsUserLinkExists(ctx context.Context, alias string, ch
 	}
 
 	var exists bool
+
 	err = s.DB.QueryRow(ctx, query, args...).Scan(&exists)
 	if err != nil {
 		return false, fmt.Errorf("%s: %w", op, err)
@@ -483,4 +464,25 @@ func (s *PostgresStorage) DeleteLink(ctx context.Context, link *domain.Link) err
 	}
 
 	return nil
+}
+
+func (s *PostgresStorage) UpdateMetric(ctx context.Context) (int, error) {
+	const op = "storage.postgres.UpdateMetric"
+
+	query, args, err := sq.
+		Select("COUNT(*)").
+		From("links").
+		ToSql()
+	if err != nil {
+		return 0, fmt.Errorf("%s: %s", op, err)
+	}
+
+	var count int
+
+	err = s.DB.QueryRow(ctx, query, args...).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return count, nil
 }

@@ -13,7 +13,7 @@ func (s *Client) GetFilteredLinks(ctx context.Context, chatID int64, tag string)
 
 	url := fmt.Sprintf("%s/links/%d/%s", s.addr, chatID, tag)
 
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", url, http.NoBody)
 	if err != nil {
 		s.log.Error("Error creating request to tg-chat: ", "op", op, "error", err.Error())
 		return nil, err
@@ -26,6 +26,7 @@ func (s *Client) GetFilteredLinks(ctx context.Context, chatID int64, tag string)
 	}
 
 	var links []*domain.Link
+
 	err = json.Unmarshal(resp, &links)
 	if err != nil {
 		s.log.Error("Error unmarshalling response: ", "op", op, "error", err.Error())

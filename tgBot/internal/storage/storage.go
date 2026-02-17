@@ -71,6 +71,7 @@ func (r *RedisCom) SaveTempUserLinks(ctx context.Context, tempUserLinks *TempUse
 		r.log.Error("SaveTempUserLinks", "err", err)
 		return err
 	}
+
 	err = r.DB.HSet(ctx, fmt.Sprintf("TempUserLinks:%d", tempUserLinks.UserID), map[string]any{
 		"user_id": tempUserLinks.UserID,
 		"links":   links,
@@ -97,6 +98,7 @@ func (r *RedisCom) GetTempUserLinks(ctx context.Context, userID int64) (*TempUse
 	}
 
 	var links []*domain.Link
+
 	err = json.Unmarshal([]byte(val["links"]), &links)
 	if err != nil {
 		r.log.Error("GetTempUserLinks: Cannot parse json", "err", err)

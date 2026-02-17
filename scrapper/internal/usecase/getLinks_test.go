@@ -1,4 +1,4 @@
-package usecase
+package usecase_test
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"scrapper/internal/config"
 	"scrapper/internal/domain"
+	"scrapper/internal/usecase"
 	mocks "scrapper/internal/usecase/mocks"
 	"testing"
 
@@ -15,14 +16,16 @@ import (
 
 func TestUseCase_GetLinks(t *testing.T) {
 	type fields struct {
-		db  Postgres
+		db  *mocks.MockPostgres
 		log *slog.Logger
 		cfg *config.Config
 	}
+
 	type args struct {
 		ctx    context.Context
 		chatID int64
 	}
+
 	tests := []struct {
 		name    string
 		fields  fields
@@ -48,6 +51,7 @@ func TestUseCase_GetLinks(t *testing.T) {
 			wantErr: true,
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockPostgres := mocks.NewMockPostgres(t)
@@ -59,19 +63,22 @@ func TestUseCase_GetLinks(t *testing.T) {
 				Maybe().
 				Return([]domain.Link{}, nil)
 
-			u := &UseCase{
-				db:  mockPostgres,
-				log: log,
-				cfg: cfg,
+			u := &usecase.UseCase{
+				DB:  mockPostgres,
+				Log: log,
+				Cfg: cfg,
 			}
+
 			got, err := u.GetLinks(tt.args.ctx, tt.args.chatID)
 			if err != nil && !tt.wantErr {
 				t.Errorf("GetLinks() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
+
 			if tt.wantErr {
 				require.Error(t, err)
 			}
+
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("GetLinks() got = %v, want %v", got, tt.want)
 			}

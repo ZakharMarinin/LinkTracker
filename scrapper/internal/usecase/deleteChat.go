@@ -10,9 +10,9 @@ func (u *UseCase) DeleteChat(ctx context.Context, chatID int64) error {
 		return errors.New("invalid chat id")
 	}
 
-	err := u.db.DeleteChat(ctx, chatID)
+	err := u.DB.DeleteChat(ctx, chatID)
 	if err != nil {
-		u.log.Error("Failed to delete chat", "chatID", chatID)
+		u.Log.Error("Failed to delete chat", "chatID", chatID)
 		return err
 	}
 

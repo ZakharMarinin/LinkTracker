@@ -2,7 +2,10 @@ package storage_test
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
+	"path/filepath"
+	"runtime"
 	"scrapper/internal/domain"
 	"scrapper/internal/storage"
 	"testing"
@@ -11,6 +14,7 @@ import (
 	"github.com/docker/go-connections/nat"
 	"github.com/google/uuid"
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/pressly/goose/v3"
 	"github.com/stretchr/testify/suite"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
@@ -49,15 +53,68 @@ func SetupPostgres(ctx context.Context) (*storage.PostgresStorage, func(), error
 
 	dsn := fmt.Sprintf("postgres://testuser:password@%s:%s/test?sslmode=disable", host, port.Port())
 
-	pool, err := storage.New(ctx, dsn)
+	migrationDB, err := sql.Open("pgx", dsn)
+	if err != nil {
+		err = container.Terminate(ctx)
+		if err != nil {
+			return nil, nil, err
+		}
 
-	if err := pool.DB.Ping(ctx); err != nil {
+		return nil, nil, fmt.Errorf("failed to open db for migrations: %w", err)
+	}
+
+	_, filename, _, _ := runtime.Caller(0)
+	migrationPath := filepath.Join(filepath.Dir(filename), "../../../migrations")
+
+	if err = goose.SetDialect("postgres"); err != nil {
+		err = migrationDB.Close()
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to close migrations db: %w", err)
+		}
+
+		err = container.Terminate(ctx)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to terminate container: %w", err)
+		}
+
+		return nil, nil, err
+	}
+
+	if err = goose.Up(migrationDB, migrationPath); err != nil {
+		err = migrationDB.Close()
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to close migrations db: %w", err)
+		}
+
+		err = container.Terminate(ctx)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to terminate dicontainer: %w", err)
+		}
+
+		return nil, nil, fmt.Errorf("failed to run migrations: %w", err)
+	}
+
+	err = migrationDB.Close()
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to close migrations db: %w", err)
+	}
+
+	pool, err := storage.New(ctx, dsn)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if err = pool.DB.Ping(ctx); err != nil {
 		return nil, nil, fmt.Errorf("unable to ping database: %s", err)
 	}
 
 	cleanup := func() {
 		pool.DB.Close()
-		container.Terminate(ctx)
+
+		err = container.Terminate(ctx)
+		if err != nil {
+			return
+		}
 	}
 
 	return pool, cleanup, nil
@@ -104,14 +161,17 @@ func (s *PostgresTestSuite) Test_CreateChatDuplicate() {
 	s.True(exists)
 
 	err = s.repo.CreateChat(context.Background(), chatID)
+
 	s.Require().Error(err, "duplicate chat")
 }
 
 func (s *PostgresTestSuite) checkChatExists(chatID int64) bool {
 	var exists bool
+
 	query := "SELECT EXISTS(SELECT 1 FROM users WHERE chat_id = $1)"
 	err := s.repo.DB.QueryRow(context.Background(), query, chatID).Scan(&exists)
 	s.NoError(err)
+
 	return exists
 }
 

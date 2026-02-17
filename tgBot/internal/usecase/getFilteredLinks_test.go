@@ -1,9 +1,10 @@
-package usecase
+package usecase_test
 
 import (
 	"context"
 	"errors"
 	"linktracker/internal/domain"
+	"linktracker/internal/usecase"
 	mocks "linktracker/internal/usecase/mocks"
 	"log/slog"
 	"os"
@@ -16,14 +17,16 @@ import (
 func TestUseCase_GetFilteredLinks(t *testing.T) {
 	type fields struct {
 		log            *slog.Logger
-		ScrapperClient ScrapperClient
-		Storage        Storage
+		ScrapperClient usecase.ScrapperClient
+		Storage        usecase.Storage
 	}
+
 	type args struct {
 		ctx context.Context
 		id  int64
 		tag string
 	}
+
 	tests := []struct {
 		name    string
 		fields  fields
@@ -60,6 +63,7 @@ func TestUseCase_GetFilteredLinks(t *testing.T) {
 			wantErr: true,
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockClient := mocks.NewMockScrapperClient(t)
@@ -73,11 +77,12 @@ func TestUseCase_GetFilteredLinks(t *testing.T) {
 					if id != 0 && tag != "" {
 						return []*domain.Link{}, nil
 					}
+
 					return nil, errors.New("not found")
 				}(tt.args.id, tt.args.tag))
 
-			u := &UseCase{
-				log:            log,
+			u := &usecase.UseCase{
+				Log:            log,
 				ScrapperClient: mockClient,
 				Storage:        mockStorage,
 			}
@@ -85,11 +90,14 @@ func TestUseCase_GetFilteredLinks(t *testing.T) {
 			got, err := u.GetFilteredLinks(tt.args.ctx, tt.args.id, tt.args.tag)
 			if err != nil && !tt.wantErr {
 				t.Errorf("GetFilteredLinks() error = %v, wantErr %v", err, tt.wantErr)
+
 				return
 			}
+
 			if tt.wantErr {
 				require.Error(t, err)
 			}
+
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("GetFilteredLinks() got = %v, want %v", got, tt.want)
 			}

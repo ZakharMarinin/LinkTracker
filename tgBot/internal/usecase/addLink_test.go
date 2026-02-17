@@ -1,10 +1,11 @@
-package usecase
+package usecase_test
 
 import (
 	"context"
 	"errors"
 	"linktracker/internal/domain"
 	"linktracker/internal/storage"
+	"linktracker/internal/usecase"
 	mocks "linktracker/internal/usecase/mocks"
 	"log/slog"
 	"os"
@@ -16,14 +17,16 @@ import (
 func TestUseCase_AddLink(t *testing.T) {
 	type fields struct {
 		log            *slog.Logger
-		ScrapperClient ScrapperClient
-		Storage        Storage
+		ScrapperClient usecase.ScrapperClient
+		Storage        usecase.Storage
 	}
+
 	type args struct {
 		ctx  context.Context
 		id   int64
-		link domain.Link
+		link *domain.Link
 	}
+
 	tests := []struct {
 		name    string
 		fields  fields
@@ -35,7 +38,7 @@ func TestUseCase_AddLink(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				id:  int64(1),
-				link: domain.Link{
+				link: &domain.Link{
 					URL:    "https://google.com",
 					Domain: "google.com",
 					Desc:   "asdfasdf",
@@ -50,7 +53,7 @@ func TestUseCase_AddLink(t *testing.T) {
 			args: args{
 				ctx:  context.Background(),
 				id:   int64(1),
-				link: domain.Link{},
+				link: &domain.Link{},
 			},
 			wantErr: true,
 		},
@@ -58,7 +61,7 @@ func TestUseCase_AddLink(t *testing.T) {
 			name: "Cannot get cache error",
 			args: args{
 				ctx: context.Background(),
-				link: domain.Link{
+				link: &domain.Link{
 					URL:    "https://google.com",
 					Domain: "google.com",
 					Desc:   "asdfasdf",
@@ -68,6 +71,7 @@ func TestUseCase_AddLink(t *testing.T) {
 			wantErr: false,
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockClient := mocks.NewMockScrapperClient(t)
@@ -81,8 +85,9 @@ func TestUseCase_AddLink(t *testing.T) {
 					if link.URL != "" {
 						return nil
 					}
+
 					return errors.New("invalid link")
-				}(tt.args.link))
+				}(*tt.args.link))
 
 			mockStorage.
 				On("GetTempUserLinks", tt.args.ctx, tt.args.id).
@@ -91,6 +96,7 @@ func TestUseCase_AddLink(t *testing.T) {
 					if chatID != 0 {
 						return &storage.TempUserLinks{UserID: tt.args.id}, nil
 					}
+
 					return nil, errors.New("invalid id")
 				}(tt.args.id))
 
@@ -98,14 +104,14 @@ func TestUseCase_AddLink(t *testing.T) {
 				On("SaveTempUserLinks", tt.args.ctx, &storage.TempUserLinks{
 					UserID: tt.args.id,
 					Links: []*domain.Link{
-						&tt.args.link,
+						tt.args.link,
 					},
 				}).
 				Maybe().
 				Return(nil)
 
-			u := &UseCase{
-				log:            log,
+			u := &usecase.UseCase{
+				Log:            log,
 				ScrapperClient: mockClient,
 				Storage:        mockStorage,
 			}
@@ -114,6 +120,7 @@ func TestUseCase_AddLink(t *testing.T) {
 			if err != nil && !tt.wantErr {
 				t.Errorf("AddLink() error = %v, wantErr %v", err, tt.wantErr)
 			}
+
 			if tt.wantErr {
 				require.Error(t, err)
 			}

@@ -10,7 +10,7 @@ import (
 )
 
 type UseCase interface {
-	AddLink(ctx context.Context, id int64, link domain.Link) error
+	AddLink(ctx context.Context, id int64, link *domain.Link) error
 	DeleteLink(ctx context.Context, id int64, alias string) error
 	GetLinks(ctx context.Context, id int64) ([]*domain.Link, error)
 	GetFilteredLinks(ctx context.Context, id int64, tag string) ([]*domain.Link, error)
@@ -19,14 +19,19 @@ type UseCase interface {
 	GetUserState(ctx context.Context, userID int64) (*domain.UserStateInfo, error)
 }
 
+type Metrics interface {
+	MessageSent(status string)
+}
+
 type BotHandler struct {
 	Bot     *telebot.Bot
 	useCase UseCase
 	log     *slog.Logger
+	Metrics Metrics
 }
 
-func NewBotHandler(b *telebot.Bot, useCase UseCase, log *slog.Logger) *BotHandler {
-	return &BotHandler{b, useCase, log}
+func NewBotHandler(b *telebot.Bot, useCase UseCase, log *slog.Logger, metrics Metrics) *BotHandler {
+	return &BotHandler{b, useCase, log, metrics}
 }
 
 func (b *BotHandler) Cancel(ctx context.Context, userInfo *domain.UserStateInfo, c telebot.Context) error {
@@ -36,7 +41,11 @@ func (b *BotHandler) Cancel(ctx context.Context, userInfo *domain.UserStateInfo,
 		return err
 	}
 
-	b.Bot.Send(c.Recipient(), "Операция была прервана.")
+	err = b.SendMessage(c, "Операция была прервана.")
+	if err != nil {
+		b.log.Error("Send: Error sending message", "error", err)
+		return err
+	}
 
 	return nil
 }
@@ -50,7 +59,7 @@ func (b *BotHandler) LinkValidation(url string) (*domain.Link, bool) {
 			return nil, false
 		}
 
-		if len(linkParts[0]) <= 0 || len(linkParts[1]) <= 0 || len(linkParts[2]) <= 0 {
+		if linkParts[0] == "" || linkParts[1] == "" || linkParts[2] == "" {
 			return nil, false
 		}
 
@@ -60,8 +69,26 @@ func (b *BotHandler) LinkValidation(url string) (*domain.Link, bool) {
 				Author:     linkParts[1],
 				Repository: linkParts[2],
 			}
+
 			return link, true
 		}
 	}
+
 	return nil, false
+}
+
+func (b *BotHandler) SendMessage(c telebot.Context, message string, opts ...interface{}) error {
+	err := c.Send(message, opts...)
+
+	status := "ok"
+
+	if err != nil {
+		b.log.Error("Failed to send message", "error", err)
+
+		status = "error"
+	}
+
+	b.Metrics.MessageSent(status)
+
+	return err
 }

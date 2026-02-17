@@ -1,10 +1,11 @@
-package usecase
+package usecase_test
 
 import (
 	"context"
 	"errors"
 	"linktracker/internal/domain"
 	"linktracker/internal/storage"
+	"linktracker/internal/usecase"
 	mocks "linktracker/internal/usecase/mocks"
 	"log/slog"
 	"os"
@@ -17,13 +18,15 @@ import (
 func TestUseCase_GetLinks(t *testing.T) {
 	type fields struct {
 		log            *slog.Logger
-		ScrapperClient ScrapperClient
-		Storage        Storage
+		ScrapperClient usecase.ScrapperClient
+		Storage        usecase.Storage
 	}
+
 	type args struct {
 		ctx context.Context
 		id  int64
 	}
+
 	tests := []struct {
 		name    string
 		fields  fields
@@ -49,6 +52,7 @@ func TestUseCase_GetLinks(t *testing.T) {
 			wantErr: true,
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockClient := mocks.NewMockScrapperClient(t)
@@ -62,6 +66,7 @@ func TestUseCase_GetLinks(t *testing.T) {
 					if chatID != 0 {
 						return &storage.TempUserLinks{UserID: tt.args.id, Links: []*domain.Link{}}, nil
 					}
+
 					return nil, errors.New("invalid id")
 				}(tt.args.id))
 
@@ -72,6 +77,7 @@ func TestUseCase_GetLinks(t *testing.T) {
 					if id != 0 {
 						return []*domain.Link{}, nil
 					}
+
 					return nil, errors.New("invalid id")
 				}(tt.args.id))
 
@@ -83,8 +89,8 @@ func TestUseCase_GetLinks(t *testing.T) {
 				Maybe().
 				Return(nil)
 
-			u := &UseCase{
-				log:            log,
+			u := &usecase.UseCase{
+				Log:            log,
 				ScrapperClient: mockClient,
 				Storage:        mockStorage,
 			}
@@ -92,11 +98,14 @@ func TestUseCase_GetLinks(t *testing.T) {
 			got, err := u.GetLinks(tt.args.ctx, tt.args.id)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GetLinks() error = %v, wantErr %v", err, tt.wantErr)
+
 				return
 			}
+
 			if tt.wantErr {
 				require.Error(t, err)
 			}
+
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("GetLinks() got = %v, want %v", got, tt.want)
 			}
