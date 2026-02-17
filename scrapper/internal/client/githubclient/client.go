@@ -1,4 +1,4 @@
-package githubClient
+package githubclient
 
 import (
 	"context"
@@ -33,7 +33,7 @@ func NewGithubClient(token string, log *slog.Logger) *GithubClient {
 func (gh *GithubClient) DoRequest(ctx context.Context, method, path string) ([]byte, error) {
 	url := gh.baseURL + path
 
-	req, err := http.NewRequestWithContext(ctx, method, url, nil)
+	req, err := http.NewRequestWithContext(ctx, method, url, http.NoBody)
 	if err != nil {
 		gh.log.Error("Error creating request", "error", err)
 		return nil, err
@@ -51,7 +51,7 @@ func (gh *GithubClient) DoRequest(ctx context.Context, method, path string) ([]b
 
 	if resp.StatusCode != http.StatusOK {
 		gh.log.Error("Error executing request", "status", resp.Status)
-		return nil, fmt.Errorf(resp.Status)
+		return nil, fmt.Errorf("%s", resp.Status)
 	}
 
 	return io.ReadAll(resp.Body)
@@ -93,9 +93,11 @@ func (gh *GithubClient) GetUpdates(ctx context.Context, link *domain.Link) (upda
 	}
 
 	var allIssues domain.GitHubContent
+
 	if err := json.Unmarshal(prData, &allIssues.PullRequests); err != nil {
 		return nil, err
 	}
+
 	if err := json.Unmarshal(issuesData, &allIssues.Issues); err != nil {
 		return nil, err
 	}

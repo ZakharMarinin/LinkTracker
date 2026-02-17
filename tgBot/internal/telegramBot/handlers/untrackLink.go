@@ -13,16 +13,20 @@ func (b *BotHandler) UntrackLink(ctx context.Context) telebot.HandlerFunc {
 	return func(c telebot.Context) error {
 		userInfo, err := b.useCase.GetUserState(ctx, c.Sender().ID)
 		if err != nil {
-			b.log.Error("TrackLink: Error getting user state", "error", err)
+			b.log.Warn("TrackLink: Error getting user state. Starting backoff...", "error", err)
+
+			err = b.BackoffStart(ctx, c)
+			if err != nil {
+				b.log.Error("backoff start error", "error", err)
+				return err
+			}
+		}
+
+		err = b.useCase.ChangeUserState(ctx, userInfo, domain.WaitingDelete)
+		if err != nil {
+			b.log.Error("TrackLink: Error changing user state", "error", err)
 			return err
 		}
-
-		if userInfo.State != domain.WaitingCommand {
-			b.Bot.Send(c.Recipient(), "Сперва нужно зарегистрироваться!\nВоспользуйтесь командой /start")
-			return nil
-		}
-
-		b.useCase.ChangeUserState(ctx, userInfo, domain.WaitingDelete)
 
 		msg := "Выберите ссылку для удаления, написав название репозитория: \n"
 
@@ -38,7 +42,11 @@ func (b *BotHandler) UntrackLink(ctx context.Context) telebot.HandlerFunc {
 			msg += fmt.Sprintf("%s: %s\n\n", alias, links[i].URL)
 		}
 
-		c.Send(msg)
+		err = b.SendMessage(c, msg)
+		if err != nil {
+			b.log.Error("Sending message", "error", err)
+			return err
+		}
 
 		return nil
 	}

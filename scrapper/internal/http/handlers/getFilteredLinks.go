@@ -15,25 +15,28 @@ func (h *HTTP) GetFilteredLinks(ctx context.Context) http.HandlerFunc {
 		tags := chi.URLParam(r, "tag")
 
 		if chatID == "" {
-			h.log.Error("handler-GetLinks: Empty chat ID")
+			h.log.Error("handler-GetLinks: Empty chat ID", "chatID", chatID)
 			w.WriteHeader(http.StatusBadRequest)
+
 			return
 		}
 
 		intChatID, err := strconv.ParseInt(chatID, 10, 64)
 		if err != nil {
-			h.log.Error("handler-GetLinks: could not parse int chatID")
+			h.log.Error("handler-GetLinks: could not parse int chatID", "error", err)
 			w.WriteHeader(http.StatusBadRequest)
+
 			return
 		}
 
 		links, err := h.useCase.GetFilteredLinks(ctx, intChatID, tags)
 		if err != nil {
-			h.log.Error("handler-GetLinks: could not get links" + err.Error())
+			h.log.Error("handler-GetLinks: could not get links", "error", err)
+
 			return
 		}
 
-		h.log.Info("handler-GetLinks: Successfully got links")
+		h.log.Info("handler-GetLinks: Successfully got links", "chatID", chatID, "tags", tags)
 		render.JSON(w, r, links)
 	}
 }

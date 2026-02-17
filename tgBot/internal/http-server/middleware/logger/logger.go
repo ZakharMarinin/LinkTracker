@@ -35,6 +35,7 @@ func New(log *slog.Logger) func(next http.Handler) http.Handler {
 
 			next.ServeHTTP(ww, r)
 		}
+
 		return http.HandlerFunc(fn)
 	}
 }

@@ -21,13 +21,13 @@ func (s *Client) DeleteLink(ctx context.Context, chatID int64, alias string) err
 
 	req, err := http.NewRequestWithContext(ctx, "DELETE", s.addr+"/links", bytes.NewReader(bodyReq))
 	if err != nil {
-		s.log.Error("DeleteLink: Error creating request to tg-chat: " + err.Error())
+		s.log.Error("DeleteLink: Error creating request to tg-chat", "error", err)
 		return err
 	}
 
 	_, err = s.sendRequest(req)
 	if err != nil {
-		s.log.Error("DeleteLink: Error sending request to tg-chat: " + err.Error())
+		s.log.Error("DeleteLink: Error sending request to tg-chat", "error", err)
 		return err
 	}
 

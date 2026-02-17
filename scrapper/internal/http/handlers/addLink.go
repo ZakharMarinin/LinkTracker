@@ -14,8 +14,9 @@ func (h *HTTP) AddLink(ctx context.Context) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
-			h.log.Error("error reading body", err)
+			h.log.Error("error reading body", "error", err)
 			w.WriteHeader(http.StatusBadRequest)
+
 			return
 		}
 		defer r.Body.Close()
@@ -24,15 +25,17 @@ func (h *HTTP) AddLink(ctx context.Context) http.HandlerFunc {
 
 		err = json.Unmarshal(body, &link)
 		if err != nil {
-			h.log.Error("error unmarshalling body", err)
+			h.log.Error("error unmarshalling body", "error", err)
 			w.WriteHeader(http.StatusBadRequest)
+
 			return
 		}
 
 		err = h.useCase.AddLink(ctx, link.ChatID, link.URL, link.Desc, link.Tags)
 		if err != nil {
-			h.log.Error("error adding link", err)
+			h.log.Error("error adding link", "error", err)
 			w.WriteHeader(http.StatusBadRequest)
+
 			return
 		}
 

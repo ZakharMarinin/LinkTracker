@@ -1,10 +1,9 @@
-package cronModule
+package cronmodule
 
 import (
 	"context"
 	"fmt"
 	"log/slog"
-	"net/http"
 	"scrapper/internal/domain"
 	"strings"
 	"sync"
@@ -22,8 +21,8 @@ type GithubClient interface {
 	GetUpdates(ctx context.Context, link *domain.Link) (update *domain.GitHubContent, err error)
 }
 
-type TGClient interface {
-	SendUpdate(ctx context.Context, link *domain.Response) (*http.Response, error)
+type Sender interface {
+	SendUpdate(ctx context.Context, link *domain.Response) error
 }
 
 type Cron struct {
@@ -31,23 +30,24 @@ type Cron struct {
 	Cron         *gocron.Scheduler
 	Storage      Storage
 	GitHubClient GithubClient
-	TGClient     TGClient
+	Sender       Sender
 	Limit        uint64
 }
 
-func New(log *slog.Logger, cron *gocron.Scheduler, storage Storage, github GithubClient, tgClient TGClient, limit uint64) *Cron {
+func New(log *slog.Logger, cron *gocron.Scheduler, storage Storage, github GithubClient, sender Sender, limit uint64) *Cron {
 	return &Cron{
 		log:          log,
 		Cron:         cron,
 		Storage:      storage,
 		GitHubClient: github,
-		TGClient:     tgClient,
+		Sender:       sender,
 		Limit:        limit,
 	}
 }
 
 func (c *Cron) StartCron() {
 	var offset uint64
+
 	ctx := context.Background()
 
 	c.log.Info("starting cron job")
@@ -83,6 +83,7 @@ func (c *Cron) StartWorkers(ctx context.Context, links []domain.Link) {
 				if err != nil {
 					c.log.Error("failed to process link", "error", err)
 				}
+
 				wg.Done()
 			}
 		}()
@@ -107,6 +108,7 @@ func (c *Cron) ProcessLink(ctx context.Context, link *domain.Link) error {
 		if err != nil {
 			return err
 		}
+
 		if update.PullRequests != nil || update.Issues != nil {
 			message = CreateUpdateText(update)
 		} else {
@@ -127,16 +129,19 @@ func (c *Cron) ProcessLink(ctx context.Context, link *domain.Link) error {
 	_, err := c.Storage.UpdateLink(ctx, link)
 	if err != nil {
 		c.log.Error("failed to update link", "error", err)
+
 		return err
 	}
 
 	err = c.SendUpdate(ctx, link, message)
 	if err != nil {
 		c.log.Error("failed to send update", "error", err)
+
 		return err
 	}
 
 	c.log.Info("processed link", "url", link.URL)
+
 	return nil
 }
 
@@ -151,10 +156,9 @@ func (c *Cron) SendUpdate(ctx context.Context, link *domain.Link, message string
 		Link:    linkUpdate,
 	}
 
-	_, err := c.TGClient.SendUpdate(ctx, req)
+	err := c.Sender.SendUpdate(ctx, req)
 	if err != nil {
-		c.log.Error("failed to send update", "error", err)
-		return err
+		return fmt.Errorf("failed to send update: %s", err)
 	}
 
 	c.log.Info("sent update", "url", link.URL)
@@ -167,15 +171,15 @@ func CreateUpdateText(repoData *domain.GitHubContent) string {
 
 	for _, i := range repoData.Issues {
 		formatTine := i.UpdatedAt.Format("2006-01-02 15:04")
-		formatUser := strings.Replace(fmt.Sprint(i.User), "{", "", -1)
-		formatUser = strings.Replace(formatUser, "}", "", -1)
+		formatUser := strings.ReplaceAll(fmt.Sprint(i.User), "{", "")
+		formatUser = strings.ReplaceAll(formatUser, "}", "")
 		message += fmt.Sprintf("Тип: Issue\nЗаголовок: %s\nОписание: %s\nКем: %s\nКогда: %s\n\n", i.Title, i.Body, formatUser, formatTine)
 	}
 
 	for _, i := range repoData.PullRequests {
 		formatTine := i.UpdatedAt.Format("2006-01-02 15:04")
-		formatUser := strings.Replace(fmt.Sprint(i.User), "{", "", -1)
-		formatUser = strings.Replace(formatUser, "}", "", -1)
+		formatUser := strings.ReplaceAll(fmt.Sprint(i.User), "{", "")
+		formatUser = strings.ReplaceAll(formatUser, "}", "")
 		message += fmt.Sprintf("Тип: PullRequest\nЗаголовок: %s\nОписание: %s\nКем: %s\nКогда: %s\n\n", i.Title, i.Body, formatUser, formatTine)
 	}
 

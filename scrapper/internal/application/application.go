@@ -5,35 +5,27 @@ import (
 	"log/slog"
 	"net/http"
 	"scrapper/internal/config"
-	"scrapper/internal/cron"
+	"scrapper/internal/dicontainer"
 	"sync"
-
-	"github.com/go-chi/chi/v5"
+	"time"
 )
 
 type Application struct {
-	ctx    context.Context
-	cfg    *config.Config
-	log    *slog.Logger
-	server *http.Server
-	cron   *cronModule.Cron
+	ctx       context.Context
+	cfg       *config.Config
+	log       *slog.Logger
+	container *dicontainer.Container
+	server    *http.Server
+	wg        *sync.WaitGroup
 }
 
-func NewApplication(ctx context.Context, cfg *config.Config, log *slog.Logger, router *chi.Mux, cron *cronModule.Cron) *Application {
-	srv := &http.Server{
-		Addr:         cfg.HttpServer.Address,
-		Handler:      router,
-		ReadTimeout:  cfg.HttpServer.Timeout,
-		WriteTimeout: cfg.HttpServer.Timeout,
-		IdleTimeout:  cfg.HttpServer.IdleTimeout,
-	}
-
+func NewApplication(ctx context.Context, cfg *config.Config, log *slog.Logger) *Application {
 	return &Application{
-		ctx:    ctx,
-		cfg:    cfg,
-		log:    log,
-		server: srv,
-		cron:   cron,
+		ctx:       ctx,
+		cfg:       cfg,
+		log:       log,
+		container: dicontainer.NewContainer(log, cfg),
+		wg:        &sync.WaitGroup{},
 	}
 }
 
@@ -45,28 +37,44 @@ func (a *Application) MustRun() {
 }
 
 func (a *Application) Run() error {
-	wg := &sync.WaitGroup{}
+	err := a.container.Init(a.ctx)
+	if err != nil {
+		a.log.Error("failed to init dependencies dicontainer", "error", err)
+		return err
+	}
 
-	wg.Add(1)
+	a.server = &http.Server{
+		Addr:         a.cfg.HTTPServer.Address,
+		Handler:      a.container.HTTPRouter,
+		ReadTimeout:  a.cfg.HTTPServer.Timeout,
+		WriteTimeout: a.cfg.HTTPServer.Timeout,
+		IdleTimeout:  a.cfg.HTTPServer.IdleTimeout,
+	}
+
+	a.wg.Add(1)
+
 	go func() {
-		defer wg.Done()
+		defer a.wg.Done()
 		a.log.Info("Run: server started")
 
-		err := a.server.ListenAndServe()
+		err = a.server.ListenAndServe()
 		if err != nil {
-			a.log.Error("ListenAndServe: ", err)
+			a.log.Error("ListenAndServe", "error", err)
 		}
 	}()
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		a.cron.Cron.StartBlocking()
-	}()
+	a.wg.Add(1)
 
 	go func() {
-		wg.Wait()
-		a.log.Info("Run: server stopped")
+		defer a.wg.Done()
+		a.container.Cron.Cron.StartBlocking()
+	}()
+
+	a.wg.Add(1)
+
+	go func() {
+		defer a.wg.Done()
+		a.container.Metrics.DBLinksTotal(a.ctx, a.container.DB)
 	}()
 
 	return nil
@@ -75,8 +83,17 @@ func (a *Application) Run() error {
 func (a *Application) Shutdown() {
 	a.log.Info("Shutdown")
 
-	err := a.server.Shutdown(a.ctx)
+	srvCtx, srvCancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer srvCancel()
+
+	err := a.server.Shutdown(srvCtx)
 	if err != nil {
 		a.log.Error("Shutdown: failed to shutdown server", "error", err)
 	}
+
+	a.container.Cron.Cron.Stop()
+
+	a.wg.Wait()
+
+	a.log.Info("Shutdown completed gracefully")
 }

@@ -5,14 +5,17 @@ import (
 	"log/slog"
 	"scrapper/internal/http/handlers"
 	"scrapper/internal/http/middleware/logger"
+	"scrapper/internal/http/middleware/prometheus"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func Router(ctx context.Context, router *chi.Mux, http *handlers.HTTP, log *slog.Logger) {
 	router.Use(middleware.RequestID)
 	router.Use(logger.New(log))
+	router.Use(prometheus.PromMiddleware())
 	router.Use(middleware.Recoverer)
 
 	router.Post("/tg-chat/{id}", http.CreateChat(ctx))
@@ -21,4 +24,5 @@ func Router(ctx context.Context, router *chi.Mux, http *handlers.HTTP, log *slog
 	router.Get("/links/{id}/{tag}", http.GetFilteredLinks(ctx))
 	router.Post("/links", http.AddLink(ctx))
 	router.Delete("/links", http.DeleteLink(ctx))
+	router.Handle("/metrics", promhttp.Handler())
 }

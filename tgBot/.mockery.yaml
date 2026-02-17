@@ -1,0 +1,9 @@
+filename: usecase.go
+packages:
+  linktracker/internal/usecase:
+    config:
+      dir: "{{.InterfaceDir}}/mocks"
+
+    interfaces:
+      Storage:
+      ScrapperClient:

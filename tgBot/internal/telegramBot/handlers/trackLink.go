@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"fmt"
 	"linktracker/internal/domain"
 
 	"gopkg.in/telebot.v4"
@@ -11,19 +10,27 @@ import (
 func (b *BotHandler) TrackLink(ctx context.Context) telebot.HandlerFunc {
 	return func(c telebot.Context) error {
 		userInfo, err := b.useCase.GetUserState(ctx, c.Sender().ID)
-		fmt.Println(userInfo.State)
 		if err != nil {
-			b.log.Error("TrackLink: Error getting user state", "error", err)
+			b.log.Warn("TrackLink: Error getting user state. Starting backoff...", "error", err)
+
+			err = b.BackoffStart(ctx, c)
+			if err != nil {
+				b.log.Error("backoff start error", "error", err)
+				return err
+			}
+		}
+
+		err = b.SendMessage(c, "Отправь мне ссылку на репозиторий GitHub для отслеживания.")
+		if err != nil {
+			b.log.Error("TrackLink: Error sending message", "error", err)
 			return err
 		}
 
-		if userInfo.State != domain.WaitingCommand {
-			b.Bot.Send(c.Recipient(), "Сперва нужно зарегистрироваться!\nВоспользуйтесь командой /start")
-			return nil
+		err = b.useCase.ChangeUserState(ctx, userInfo, domain.WaitingURL)
+		if err != nil {
+			b.log.Error("TrackLink: Error changing user state", "error", err)
+			return err
 		}
-
-		b.Bot.Send(c.Recipient(), "Отправь мне ссылку на репозиторий GitHub для отслеживания.")
-		b.useCase.ChangeUserState(ctx, userInfo, domain.WaitingURl)
 
 		return nil
 	}

@@ -1,4 +1,5 @@
 env: "local"
+transport_type: "kafka"
 http_server:
   address: 0.0.0.0:8081
   timeout: 4s
@@ -6,3 +7,8 @@ http_server:
 tgbot:
   addr: "http://tgBot:8080"
   timeout: 5s
+kafka:
+  addr: "kafka:9092"
+  topic: link-update
+  timeout: 5s
+  retry: 5
